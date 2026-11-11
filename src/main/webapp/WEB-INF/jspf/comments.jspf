@@ -1,0 +1,31 @@
+<%-- Host supplies discussionDecisionId, comments, commentLimit, and userZone.
+     Optional validation attributes: commentError and commentBody. --%>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/css/comments.css">
+<section class="box" id="comments" aria-labelledby="commentsHeading">
+  <h2 id="commentsHeading">Comments</h2>
+  <form class="form comment-form" method="post" action="${pageContext.request.contextPath}/comments?decision=${discussionDecisionId}#comments">
+    <c:if test="${not empty commentError}">
+      <p class="alert" id="commentError" role="alert"><c:out value="${commentError}"/></p>
+    </c:if>
+    <label for="commentBody">Add to the discussion</label>
+    <textarea id="commentBody" name="body" rows="4" maxlength="${commentLimit}" required aria-describedby="commentHelp${not empty commentError ? ' commentError' : ''}" ${not empty commentError ? 'aria-invalid="true"' : ''}><c:out value="${commentBody}"/></textarea>
+    <p class="panel-note" id="commentHelp"><span id="commentRemaining" role="status" aria-live="polite" aria-atomic="true">Up to <c:out value="${commentLimit}"/> characters.</span> Comments are permanent.</p>
+    <button class="pill pill-glow" type="submit">Add comment</button>
+  </form>
+  <c:choose>
+    <c:when test="${empty comments}">
+      <p class="dash-empty">No comments yet. Start the discussion with your team.</p>
+    </c:when>
+    <c:otherwise>
+      <ol class="comment-thread" aria-label="Comments, newest first">
+        <c:forEach var="comment" items="${comments}">
+          <li class="comment-entry">
+            <p class="feed-meta"><strong><c:out value="${comment.authorName}"/></strong><span><c:out value="${comment.dateTime(userZone)}"/></span></p>
+            <p class="prose comment-body"><c:out value="${comment.body}"/></p>
+          </li>
+        </c:forEach>
+      </ol>
+    </c:otherwise>
+  </c:choose>
+</section>
+<script src="${pageContext.request.contextPath}/js/comments.js"></script>

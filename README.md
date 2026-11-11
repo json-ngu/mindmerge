@@ -26,6 +26,10 @@ This document covers how to set the project up and run it on macOS or Windows. T
 - **Teams** (owners and admins): create teams and add members as lead, approver or member.
 - **History is kept**: removing someone only ends their membership. Their decisions, comments
   and past memberships stay in the database.
+- **Decision comments**: use the Comments link on the dashboard or project page to read
+  newest-first discussion threads. Current team members can add
+  permanent comments up to 2,000 characters. See [the comments guide](docs/comments.md)
+  for code explanations, focused checks and manual testing steps.
 
 **Coming next** (shown as "Soon" in the sidebar): the decisions list, tags and the audit log.
 
