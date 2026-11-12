@@ -26,7 +26,7 @@ import java.util.List;
  * ApprovalServlet). The old /decisions/new address redirects here so earlier links keep working.
  */
 @WebServlet({"/decisions/create", "/decisions/new"})
-public class DecisionServlet extends HttpServlet {
+public class DecisionCreateServlet extends HttpServlet {
 
     private static final String OLD_PATH = "/decisions/new";
 

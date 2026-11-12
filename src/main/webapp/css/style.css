@@ -1799,10 +1799,21 @@ body.legal {
   letter-spacing: -0.01em;
 }
 
-.feed-superseded .feed-title {
+.feed-superseded a.feed-title,
+.feed-superseded a.feed-title:visited {
   color: var(--muted);
   text-decoration: line-through;
   text-decoration-color: rgba(155, 151, 166, 0.6);
+}
+
+a.feed-title,
+a.feed-title:visited {
+    color: var(--text);
+}
+
+a.feed-title:hover,
+a.feed-title:focus-visible {
+    color: var(--accent);
 }
 
 .feed-chose,
@@ -2576,6 +2587,12 @@ body.legal {
   min-height: 90px;
 }
 
+.option-box.is-selected {
+    background: rgba(180, 144, 242, 0.08);
+    border-color: var(--accent);
+    /* box-shadow: 0 0 0 2px rgba(155, 93, 229, 0.2); */
+}
+
 .optional {
   color: var(--muted);
   font-size: 12px;
@@ -3021,4 +3038,10 @@ body.legal {
   .app-main > .manage-head > div:first-child {
     max-width: none;
   }
+}
+
+.decision-field {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
 }

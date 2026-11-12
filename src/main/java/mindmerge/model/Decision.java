@@ -9,6 +9,7 @@ import java.util.List;
 public class Decision {
 
     private int           decisionId;
+    private int           projectId;
     private String        projectName;
     private String        title;
     private String        context;
@@ -23,6 +24,9 @@ public class Decision {
 
     public int getDecisionId()              { return decisionId; }
     public void setDecisionId(int v)        { this.decisionId = v; }
+
+    public int getProjectId()              { return projectId; }
+    public void setProjectId(int v)        { this.projectId = v; }
 
     public String getProjectName()          { return projectName; }
     public void setProjectName(String v)    { this.projectName = v; }

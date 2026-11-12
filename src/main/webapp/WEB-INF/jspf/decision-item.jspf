@@ -1,7 +1,7 @@
 <%-- One decision in a list (dashboard feed, project page). The including page loops with var "d". --%>
 <li class="feed-item feed-${d.status}">
   <p class="feed-project"><c:out value="${d.projectName}"/></p>
-  <p class="feed-title"><c:out value="${d.title}"/></p>
+  <a class="feed-title" href="${pageContext.request.contextPath}/decisions/details?id=${d.decisionId}"><c:out value="${d.title}"/></a>
   <c:if test="${not empty d.chosenOption}">
     <p class="feed-chose"><c:out value="${d.status eq 'proposed' ? 'Proposed option:' : 'Selected option:'}"/> <span><c:out value="${d.chosenOption}"/></span></p>
   </c:if>
