@@ -26,10 +26,15 @@ This document covers how to set the project up and run it on macOS or Windows. T
 - **Teams** (owners and admins): create teams and add members as lead, approver or member.
 - **History is kept**: removing someone only ends their membership. Their decisions, comments
   and past memberships stay in the database.
-- **Decision comments**: use the Comments link on the dashboard or project page to read
-  newest-first discussion threads. Current team members can add
-  permanent comments up to 2,000 characters. See [the comments guide](docs/comments.md)
-  for code explanations, focused checks and manual testing steps.
+- **Projects**: team leads and company owners/admins create projects and set their status and
+  description; each project page lists its decisions.
+- **Create decision and approvals**: record a decision with its options, the option you
+  recommend and your rationale; a team lead or approver reviews and approves it.
+- **Decision details and comments**: select a decision on the dashboard or a project page to
+  see its context, options, rationale and newest-first discussion. Current team members, and
+  the company's owners and administrators, can add permanent comments up to 2,000 characters.
+  See [the comments guide](docs/comments.md) for code explanations, focused checks and manual
+  testing steps.
 
 **Coming next** (shown as "Soon" in the sidebar): the decisions list, tags and the audit log.
 
@@ -284,27 +289,34 @@ mindmerge/
 ├── pom.xml                        Maven build configuration
 ├── db.properties.example          Template for local database credentials
 ├── sql/schema.sql                 All tables, seed data and demo logins
-└── src/main/
-    ├── java/mindmerge/
-    │   ├── util/                  DbUtil (JDBC connections), PasswordUtil (hashing),
-    │   │                          Auth (session helpers)
-    │   ├── model/                 Decision, Project, Tag, User, Viewer, Company, Member,
-    │   │                          Invite, Team
-    │   ├── dao/                   SQL: DashboardDao, DecisionDao, UserDao, CompanyDao,
-    │   │                          InviteDao, TeamDao
-    │   └── servlet/               Request handlers: Home, Login, Register, Logout,
-    │                              Dashboard, Company, People, Teams, Settings, Invite
-    ├── resources/                 db.properties goes here (you create it)
-    └── webapp/
-        ├── index.jsp              Entry point, redirects to /home
-        ├── login.jsp, register.jsp
-        ├── css/style.css          All styling
-        ├── js/                    Landing animation, scroll effects, live search,
-        │                          password reveal, small form helpers
-        ├── img/logo.svg           Logo and favicon
-        └── WEB-INF/
-            ├── web.xml            Deployment descriptor (session timeout)
-            ├── home.jsp           Landing page
-            ├── dashboard.jsp, people.jsp, teams.jsp, settings.jsp, company-new.jsp
-            └── jspf/              Shared fragments: head, sidebar, top bar, logo, notices
+├── docs/comments.md               How the comments feature works and how to check it
+└── src/
+    ├── test/java/mindmerge/       CommentChecks (run by hand; see docs/comments.md)
+    └── main/
+        ├── java/mindmerge/
+        │   ├── util/              DbUtil (JDBC connections), PasswordUtil (hashing),
+        │   │                      Auth (session helpers), Limits (input limits), Zones (time zones)
+        │   ├── model/             Decision, DecisionOption, Comment, Project, Tag, User, Viewer,
+        │   │                      Company, Member, Invite, Team
+        │   ├── dao/               SQL: DashboardDao, DecisionDao, ApprovalDao, CommentDao,
+        │   │                      ProjectDao, UserDao, CompanyDao, InviteDao, TeamDao
+        │   └── servlet/           Request handlers: Home, Legal, Login, Register, Logout,
+        │                          Dashboard, DecisionCreate, DecisionDetail, Approval, Project,
+        │                          Company, People, Teams, Settings, Invite
+        ├── resources/             db.properties goes here (you create it)
+        └── webapp/
+            ├── index.jsp          Entry point, redirects to /home
+            ├── login.jsp, register.jsp
+            ├── css/style.css      All styling
+            ├── js/                Landing animation, scroll effects, live search,
+            │                      password reveal, small form helpers
+            ├── img/logo.svg       Logo and favicon
+            └── WEB-INF/
+                ├── web.xml        Deployment descriptor (session timeout, error pages)
+                ├── home.jsp       Landing page; privacy.jsp, terms.jsp, error.jsp
+                ├── dashboard.jsp, decision-create.jsp, decision-details.jsp,
+                │   approvals.jsp, approval.jsp, projects.jsp, project.jsp,
+                │   people.jsp, teams.jsp, settings.jsp, company-new.jsp
+                └── jspf/          Shared fragments: head, sidebar, top bar, logo, notices,
+                                   decision list item, comments
 ```

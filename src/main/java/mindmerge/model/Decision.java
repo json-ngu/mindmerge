@@ -49,7 +49,6 @@ public class Decision {
     public String getDecidedBy()            { return decidedBy; }
     public void setDecidedBy(String v)      { this.decidedBy = v; }
 
-    public LocalDateTime getDecidedAt()     { return decidedAt; }
     public void setDecidedAt(LocalDateTime v) { this.decidedAt = v; }
 
     public LocalDateTime getCreatedAt()     { return createdAt; }

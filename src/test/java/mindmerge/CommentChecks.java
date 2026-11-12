@@ -1,6 +1,7 @@
 package mindmerge;
 
 import mindmerge.dao.CommentDao;
+import mindmerge.dao.DashboardDao;
 import mindmerge.model.Comment;
 import mindmerge.util.DbUtil;
 import mindmerge.util.Zones;
@@ -38,6 +39,7 @@ public final class CommentChecks {
 
     private static void checkDatabase() throws Exception {
         CommentDao comments = new CommentDao();
+        DashboardDao decisions = new DashboardDao();
         int visible = 0;
         try (Connection conn = DbUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -47,33 +49,37 @@ public final class CommentChecks {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 int id = rs.getInt(1), user = rs.getInt(2);
-                check(comments.findDiscussionTitle(id, user) != null, "Current member may open discussion");
+                check(decisions.findVisible(user, id) != null, "Current member may open the decision");
                 List<Comment> thread = comments.findByDecision(id, user);
                 for (int i = 1; i < thread.size(); i++) {
                     Comment a = thread.get(i - 1), b = thread.get(i);
                     int order = a.getCreatedAt().compareTo(b.getCreatedAt());
                     check(order > 0 || (order == 0 && a.getCommentId() > b.getCommentId()), "Newest/id order");
                 }
-                check(comments.findDiscussionTitle(id, -1) == null, "Nonmember cannot open discussion");
+                check(decisions.findVisible(-1, id) == null, "Nonmember cannot open the decision");
                 check(comments.findByDecision(id, -1).isEmpty(), "Nonmember cannot read comments");
                 check(!comments.create(id, -1, "Unauthorized check"), "Nonmember cannot insert");
                 visible++;
             }
         }
         check(visible > 0, "Database needs existing decisions and current memberships");
-        // Historical members must be denied unless they also have a current membership.
+        // Historical members must be denied unless they also have a current membership, or are
+        // still an owner or administrator of the team's company.
         try (Connection conn = DbUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "SELECT d.decision_id, old.user_id FROM decision d " +
                  "JOIN project p ON p.project_id = d.project_id " +
                  "JOIN team_member old ON old.team_id = p.team_id WHERE old.left_at IS NOT NULL " +
                  "AND NOT EXISTS (SELECT 1 FROM team_member cur WHERE cur.team_id = p.team_id " +
-                 "AND cur.user_id = old.user_id AND cur.left_at IS NULL)");
+                 "AND cur.user_id = old.user_id AND cur.left_at IS NULL) " +
+                 "AND NOT EXISTS (SELECT 1 FROM team t JOIN employee e ON e.company_id = t.company_id " +
+                 "WHERE t.team_id = p.team_id AND e.user_id = old.user_id AND e.left_at IS NULL " +
+                 "AND e.company_role IN ('owner', 'admin'))");
              ResultSet rs = ps.executeQuery()) {
             int former = 0;
             while (rs.next()) {
                 int id = rs.getInt(1), user = rs.getInt(2);
-                check(comments.findDiscussionTitle(id, user) == null, "Former member cannot open discussion");
+                check(decisions.findVisible(user, id) == null, "Former member cannot open the decision");
                 check(comments.findByDecision(id, user).isEmpty(), "Former member cannot read comments");
                 check(!comments.create(id, user, "Unauthorized check"), "Former member cannot insert");
                 former++;

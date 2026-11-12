@@ -1,15 +1,22 @@
 package mindmerge.model;
 
-/** One of the options a decision weighs; is_chosen marks the option the author selected. */
+/**
+ * One of the options a decision weighs; is_chosen marks the option the author selected. The create
+ * decision form also uses it, unsaved, to refill the options after an error.
+ */
 public class DecisionOption {
 
-    private int     optionNum;
     private String  label;
     private String  description;  // may be null
     private boolean chosen;
 
-    public int getOptionNum()               { return optionNum; }
-    public void setOptionNum(int v)         { this.optionNum = v; }
+    public DecisionOption() {
+    }
+
+    public DecisionOption(String label, String description) {
+        this.label = label;
+        this.description = description;
+    }
 
     public String getLabel()                { return label; }
     public void setLabel(String v)          { this.label = v; }

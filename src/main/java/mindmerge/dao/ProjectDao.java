@@ -34,6 +34,13 @@ public class ProjectDao {
         "EXISTS (SELECT 1 FROM employee e WHERE e.company_id = t.company_id AND e.user_id = ? " +
         "        AND e.left_at IS NULL AND e.company_role IN ('owner', 'admin')) ";
 
+    /**
+     * Who may see a team's projects, decisions and comments: a current member of team "t", or a current
+     * owner or administrator of its company. Takes the viewer's id twice. Shared by DashboardDao and
+     * CommentDao so the rule lives in one place.
+     */
+    static final String CAN_SEE = "(" + ON_TEAM + "OR " + ADMINISTERS_COMPANY + ") ";
+
     // Parameters: the viewer's id five times (member, two for can_manage, two for the WHERE).
     private static final String VISIBLE =
         "SELECT p.project_id, p.name, p.description, p.status, t.name AS team_name, c.name AS company_name, " +
@@ -45,7 +52,7 @@ public class ProjectDao {
         "FROM project p " +
         "JOIN team t ON t.team_id = p.team_id " +
         "JOIN company c ON c.company_id = t.company_id " +
-        "WHERE (" + ON_TEAM + "OR " + ADMINISTERS_COMPANY + ") ";
+        "WHERE " + CAN_SEE;
 
     private static final String FIND_VISIBLE =
         VISIBLE + "ORDER BY FIELD(p.status, 'active', 'on_hold', 'completed', 'archived'), p.name";

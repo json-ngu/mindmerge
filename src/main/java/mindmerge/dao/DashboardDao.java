@@ -14,14 +14,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Reading decisions, for the dashboard, the approval pages and a project's page. Everything except
- * findByProject is scoped to the teams the viewer currently belongs to.
+ * Reading decisions, for the dashboard, the approval pages, a project's page and a decision's page.
+ * The dashboard and approval queries are scoped to the teams the viewer currently belongs to;
+ * findVisible also lets company owners and administrators in (ProjectDao.CAN_SEE).
  */
 public class DashboardDao {
 
     // Every decision with its project, author, selected option, tags and replacement. Not scoped to a viewer.
     private static final String DECISION_COLUMNS =
-        "SELECT d.decision_id, p.name AS project_name, d.title, d.context, d.rationale, d.status, " +
+        "SELECT d.decision_id, d.project_id, p.name AS project_name, d.title, d.context, d.rationale, d.status, " +
         "       d.decided_at, d.created_at, u.full_name AS decided_by, o.label AS chosen_option, " +
         "       (SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ',') " +
         "          FROM decision_tag dt JOIN tag t ON t.tag_id = dt.tag_id " +
@@ -57,6 +58,12 @@ public class DashboardDao {
     private static final String FEED_ORDER = "ORDER BY COALESCE(d.decided_at, d.created_at) DESC ";
     private static final int RECENT_LIMIT = 12;  // the plain Recent decisions list
     private static final int SEARCH_LIMIT = 200; // a search or tag filter shows every match, up to this cap
+
+    // One decision, for its own page, if the viewer may see it (ProjectDao.CAN_SEE).
+    // Parameters: the decision id, then the viewer's id twice.
+    private static final String FIND_VISIBLE =
+        DECISION_COLUMNS + "JOIN team t ON t.team_id = p.team_id " +
+        "WHERE d.decision_id = ? AND " + ProjectDao.CAN_SEE;
 
     // One project's decisions. The caller checks the viewer may see the project (ProjectDao.find).
     private static final String FIND_BY_PROJECT =
@@ -157,6 +164,19 @@ public class DashboardDao {
         }
     }
 
+    /** The decision if the viewer may see it, otherwise null. */
+    public Decision findVisible(int userId, int decisionId) throws SQLException {
+        try (Connection conn = DbUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(FIND_VISIBLE)) {
+
+            ps.setInt(1, decisionId);
+            ps.setInt(2, userId);
+            ps.setInt(3, userId);
+            List<Decision> found = readDecisions(ps);
+            return found.isEmpty() ? null : found.get(0);
+        }
+    }
+
     /** Every decision in the project, newest first. Visibility is checked by the caller. */
     public List<Decision> findByProject(int projectId) throws SQLException {
         try (Connection conn = DbUtil.getConnection();
@@ -233,6 +253,7 @@ public class DashboardDao {
     private Decision mapDecision(ResultSet rs) throws SQLException {
         Decision d = new Decision();
         d.setDecisionId(rs.getInt("decision_id"));
+        d.setProjectId(rs.getInt("project_id"));
         d.setProjectName(rs.getString("project_name"));
         d.setTitle(rs.getString("title"));
         d.setContext(rs.getString("context"));

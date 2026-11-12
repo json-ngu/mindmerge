@@ -40,7 +40,6 @@ public class Project {
     public int getDecisionCount()              { return decisionCount; }
     public void setDecisionCount(int v)        { this.decisionCount = v; }
 
-    public LocalDateTime getLastActivity()     { return lastActivity; }
     public void setLastActivity(LocalDateTime v) { this.lastActivity = v; }
 
     public boolean isMember()                  { return member; }

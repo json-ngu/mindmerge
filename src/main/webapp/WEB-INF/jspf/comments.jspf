@@ -1,9 +1,8 @@
-<%-- Host supplies discussionDecisionId, comments, commentLimit, and userZone.
-     Optional validation attributes: commentError and commentBody. --%>
-<link rel="stylesheet" href="${pageContext.request.contextPath}/css/comments.css">
+<%-- Included by decision-details.jsp, which supplies decision, comments, commentLimit and userZone and
+     declares the JSTL c and fn taglibs. Optional validation attributes: commentError and commentBody. --%>
 <section class="box" id="comments" aria-labelledby="commentsHeading">
-  <h2 id="commentsHeading">Comments</h2>
-  <form class="form comment-form" method="post" action="${pageContext.request.contextPath}/comments?decision=${discussionDecisionId}#comments">
+  <h2 id="commentsHeading">Comments <span class="count"><c:out value="${fn:length(comments)}"/></span></h2>
+  <form class="form comment-form" method="post" action="${pageContext.request.contextPath}/decisions/details?id=${decision.decisionId}#comments">
     <c:if test="${not empty commentError}">
       <p class="alert" id="commentError" role="alert"><c:out value="${commentError}"/></p>
     </c:if>
@@ -14,7 +13,7 @@
   </form>
   <c:choose>
     <c:when test="${empty comments}">
-      <p class="dash-empty">No comments yet. Start the discussion with your team.</p>
+      <p class="dash-empty">No comments have been added to this decision.</p>
     </c:when>
     <c:otherwise>
       <ol class="comment-thread" aria-label="Comments, newest first">

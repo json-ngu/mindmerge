@@ -31,7 +31,6 @@ public class Member {
     public String getStatus()               { return status; }
     public void setStatus(String v)         { this.status = v; }
 
-    public LocalDateTime getJoinedAt()      { return joinedAt; }
     public void setJoinedAt(LocalDateTime v) { this.joinedAt = v; }
 
     public String getJoinedDate()           { return joinedAt == null ? "" : joinedAt.format(DATE); }

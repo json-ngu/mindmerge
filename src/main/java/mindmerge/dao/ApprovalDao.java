@@ -43,7 +43,6 @@ public class ApprovalDao {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DecisionOption o = new DecisionOption();
-                    o.setOptionNum(rs.getInt("option_num"));
                     o.setLabel(rs.getString("label"));
                     o.setDescription(rs.getString("description"));
                     o.setChosen(rs.getBoolean("is_chosen"));

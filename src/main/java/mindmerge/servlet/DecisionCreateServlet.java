@@ -3,6 +3,7 @@ package mindmerge.servlet;
 import mindmerge.dao.DashboardDao;
 import mindmerge.dao.DecisionDao;
 import mindmerge.dao.UserDao;
+import mindmerge.model.DecisionOption;
 import mindmerge.model.Project;
 import mindmerge.model.User;
 import mindmerge.util.Auth;
@@ -23,13 +24,10 @@ import java.util.List;
 /**
  * Create decision: records a decision in one of the viewer's projects, with its options, the option the
  * author selects and the rationale. It stays proposed until a lead or approver approves it (see
- * ApprovalServlet). The old /decisions/new address redirects here so earlier links keep working.
+ * ApprovalServlet).
  */
-@WebServlet({"/decisions/create", "/decisions/new"})
+@WebServlet("/decisions/create")
 public class DecisionCreateServlet extends HttpServlet {
-
-    private static final String OLD_PATH = "/decisions/new";
-
 
     private final DecisionDao decisionDao = new DecisionDao();
     private final UserDao userDao = new UserDao();
@@ -38,12 +36,6 @@ public class DecisionCreateServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
-        if (OLD_PATH.equals(request.getServletPath())) {
-            String query = request.getQueryString();
-            response.sendRedirect(request.getContextPath() + "/decisions/create" + (query == null ? "" : "?" + query));
-            return;
-        }
 
         User user = Auth.requireUser(request, response);
         if (user == null) return;
@@ -63,7 +55,7 @@ public class DecisionCreateServlet extends HttpServlet {
         int projectId = Auth.intParam(request, "projectId");
         String title = Auth.trim(request.getParameter("title"));
         String context = Auth.trim(request.getParameter("context"));
-        List<DraftOption> options = readOptions(request);
+        List<DecisionOption> options = readOptions(request);
         int selected = Auth.intParam(request, "selected");  // 1-based position of the selected option
         String rationale = Auth.trim(request.getParameter("rationale"));
 
@@ -93,7 +85,7 @@ public class DecisionCreateServlet extends HttpServlet {
                 try {
                     int decisionId = decisionDao.create(conn, projectId, user.getUserId(), title, context, rationale);
                     for (int i = 0; i < options.size(); i++) {
-                        DraftOption o = options.get(i);
+                        DecisionOption o = options.get(i);
                         decisionDao.createOption(conn, decisionId, i + 1, o.getLabel(), o.getDescription(),
                                                  i + 1 == selected);
                     }
@@ -114,7 +106,7 @@ public class DecisionCreateServlet extends HttpServlet {
     }
 
     /** Returns the first problem with the submitted form, or null when it's valid. */
-    private String validate(String title, String context, List<DraftOption> options,
+    private String validate(String title, String context, List<DecisionOption> options,
                             int selected, String rationale) {
         if (title.isEmpty() || context.isEmpty()) {
             return "Enter a title and context for the decision.";
@@ -131,7 +123,7 @@ public class DecisionCreateServlet extends HttpServlet {
         if (options.size() > Limits.MAX_OPTIONS) {
             return "A decision can have at most " + Limits.MAX_OPTIONS + " options.";
         }
-        for (DraftOption o : options) {
+        for (DecisionOption o : options) {
             if (o.getLabel().isEmpty()) {
                 return "Enter a name for each option.";
             }
@@ -160,8 +152,8 @@ public class DecisionCreateServlet extends HttpServlet {
         request.setAttribute("activeNav", "create-decision");
         request.setAttribute("error", error);
         if (request.getAttribute("options") == null) {
-            List<DraftOption> blank = new ArrayList<>();
-            for (int i = 0; i < Limits.MIN_OPTIONS; i++) blank.add(new DraftOption("", ""));
+            List<DecisionOption> blank = new ArrayList<>();
+            for (int i = 0; i < Limits.MIN_OPTIONS; i++) blank.add(new DecisionOption("", ""));
             request.setAttribute("options", blank);
         }
         try {
@@ -175,15 +167,15 @@ public class DecisionCreateServlet extends HttpServlet {
     }
 
     /** Pairs each option name with its description, in the order they were sent. */
-    private List<DraftOption> readOptions(HttpServletRequest request) {
+    private List<DecisionOption> readOptions(HttpServletRequest request) {
         String[] labels = request.getParameterValues("optionLabel");
         String[] descriptions = request.getParameterValues("optionDescription");
-        List<DraftOption> options = new ArrayList<>();
+        List<DecisionOption> options = new ArrayList<>();
         if (labels == null) return options;
 
         for (int i = 0; i < labels.length; i++) {
             String description = descriptions != null && i < descriptions.length ? descriptions[i] : null;
-            options.add(new DraftOption(Auth.trim(labels[i]), Auth.trim(description)));
+            options.add(new DecisionOption(Auth.trim(labels[i]), Auth.trim(description)));
         }
         return options;
     }
@@ -193,19 +185,5 @@ public class DecisionCreateServlet extends HttpServlet {
             if (p.getProjectId() == projectId) return true;
         }
         return false;
-    }
-
-    /** An option as typed into the form; used to refill it after an error. */
-    public static class DraftOption {
-        private final String label;
-        private final String description;
-
-        DraftOption(String label, String description) {
-            this.label = label;
-            this.description = description;
-        }
-
-        public String getLabel()       { return label; }
-        public String getDescription() { return description; }
     }
 }

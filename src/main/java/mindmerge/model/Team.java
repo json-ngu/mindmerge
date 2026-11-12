@@ -20,7 +20,6 @@ public class Team {
     public void setCompanyName(String v)   { this.companyName = v; }
 
     public List<Member> getMembers()       { return members; }
-    public void setMembers(List<Member> v) { this.members = v; }
 
     public boolean hasMember(int userId) {
         for (Member m : members) {

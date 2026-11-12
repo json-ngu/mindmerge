@@ -2,6 +2,7 @@ package mindmerge.dao;
 
 import mindmerge.model.Comment;
 import mindmerge.util.DbUtil;
+import mindmerge.util.Limits;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,48 +11,32 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// Reads and appends comments only. There are deliberately no edit or delete operations. 
+// Reads and appends comments only. There are deliberately no edit or delete operations.
 public class CommentDao {
-    public static final int MAX_BODY = 2000;
+    public static final int MAX_BODY = Limits.COMMENT;
 
-    // EXISTS avoids duplicate comments if membership history contains multiple matching rows.
-    // Both operations enforce the dashboard's rule, even when called outside the detail servlet.
-    private static final String MEMBERSHIP =
+    // Who may read or add comments: whoever may see the decision (ProjectDao.CAN_SEE).
+    // Parameters: decision id, viewer id, viewer id.
+    private static final String CAN_VIEW =
         "EXISTS (SELECT 1 FROM decision d JOIN project p ON p.project_id = d.project_id " +
-        "JOIN team_member tm ON tm.team_id = p.team_id " +
-        "WHERE d.decision_id = ? AND tm.user_id = ? AND tm.left_at IS NULL)";
+        "JOIN team t ON t.team_id = p.team_id WHERE d.decision_id = ? AND " + ProjectDao.CAN_SEE + ")";
 
     private static final String FIND =
         "SELECT c.comment_id, u.full_name AS author_name, c.body, c.created_at " +
         "FROM comment c JOIN `user` u ON u.user_id = c.user_id " +
-        "WHERE c.decision_id = ? AND " + MEMBERSHIP +
+        "WHERE c.decision_id = ? AND " + CAN_VIEW +
         " ORDER BY c.created_at DESC, c.comment_id DESC";
 
     private static final String CREATE =
-        "INSERT INTO comment (decision_id, user_id, body) SELECT ?, ?, ? WHERE " + MEMBERSHIP;
+        "INSERT INTO comment (decision_id, user_id, body) SELECT ?, ?, ? WHERE " + CAN_VIEW;
 
-    // Only a title for the discussion heading; null for missing or inaccessible decisions. 
-    public String findDiscussionTitle(int decisionId, int viewerId) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                 "SELECT title FROM decision WHERE decision_id = ? AND " + MEMBERSHIP)) {
-            ps.setInt(1, decisionId);
-            ps.setInt(2, decisionId);
-            ps.setInt(3, viewerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getString("title") : null;
-            }
-        }
-    }
-
-    // Returns only comments the viewer may currently read, newest first with an id tie-breaker. 
+    // Returns only comments the viewer may currently read, newest first with an id tie-breaker.
     public List<Comment> findByDecision(int decisionId, int viewerId) throws SQLException {
         List<Comment> comments = new ArrayList<>();
         try (Connection conn = DbUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(FIND)) {
             ps.setInt(1, decisionId);
-            ps.setInt(2, decisionId);
-            ps.setInt(3, viewerId);
+            bindCanView(ps, 2, decisionId, viewerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Comment c = new Comment();
@@ -67,7 +52,7 @@ public class CommentDao {
     }
 
     /**
-     * Inserts only while the session user is still a member. 
+     * Inserts only while the session user may still see the decision.
      * False means access is no longer valid.
      */
     public boolean create(int decisionId, int userId, String body) throws SQLException {
@@ -78,10 +63,17 @@ public class CommentDao {
             ps.setInt(1, decisionId);
             ps.setInt(2, userId);
             ps.setString(3, body);
-            ps.setInt(4, decisionId);
-            ps.setInt(5, userId);
+            bindCanView(ps, 4, decisionId, userId);
             return ps.executeUpdate() == 1;
         }
+    }
+
+    // Binds CAN_VIEW's three parameters, starting at position first.
+    private static void bindCanView(PreparedStatement ps, int first, int decisionId, int userId)
+            throws SQLException {
+        ps.setInt(first, decisionId);
+        ps.setInt(first + 1, userId);
+        ps.setInt(first + 2, userId);
     }
 
     /** Shared by the servlet and DAO; Java length matches the textarea's UTF-16 maxlength rule. */

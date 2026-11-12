@@ -24,13 +24,12 @@ CREATE TABLE employee (
   company_id    INT           NOT NULL,
   company_role  ENUM('owner', 'admin', 'member') NOT NULL DEFAULT 'member',
   joined_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  left_at       DATETIME,     -- set when removed; the row is kept for history
+  left_at       DATETIME,
   PRIMARY KEY (user_id, company_id),
   FOREIGN KEY (user_id)    REFERENCES `user` (user_id),
   FOREIGN KEY (company_id) REFERENCES company (company_id)
 );
 
--- Every invite ever sent. Rows are never deleted; responding only changes status.
 CREATE TABLE company_invite (
   invite_id     INT           AUTO_INCREMENT PRIMARY KEY,
   company_id    INT           NOT NULL,
@@ -58,7 +57,7 @@ CREATE TABLE team_member (
   team_id       INT           NOT NULL,
   team_role     ENUM('lead', 'approver', 'member') NOT NULL DEFAULT 'member',
   joined_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  left_at       DATETIME,     -- set when removed; the row is kept for history
+  left_at       DATETIME,
   PRIMARY KEY (user_id, team_id),
   FOREIGN KEY (user_id) REFERENCES `user` (user_id),
   FOREIGN KEY (team_id) REFERENCES team (team_id)

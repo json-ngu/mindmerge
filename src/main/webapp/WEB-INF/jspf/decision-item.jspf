@@ -12,7 +12,7 @@
     <span class="status status-${d.status}"><c:out value="${d.status}"/></span>
     <span><c:out value="${d.decidedBy}"/></span>
     <span><c:out value="${d.dateTime(userZone)}"/></span>
-    <a href="${pageContext.request.contextPath}/comments?decision=${d.decisionId}#comments">Comments</a>
+    <a href="${pageContext.request.contextPath}/decisions/details?id=${d.decisionId}#comments">Comments</a>
   </p>
   <c:if test="${not empty d.tags}">
     <ul class="tags">

@@ -22,6 +22,7 @@ public final class Limits {
     public static final int MAX_OPTIONS = 10;
 
     public static final int TEXT = 10000;          // context, rationale and descriptions (TEXT columns)
+    public static final int COMMENT = 2000;        // a comment's body (comment.body)
 
     private Limits() {
     }

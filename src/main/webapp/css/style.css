@@ -1808,12 +1808,12 @@ body.legal {
 
 a.feed-title,
 a.feed-title:visited {
-    color: var(--text);
+  color: var(--text);
 }
 
 a.feed-title:hover,
 a.feed-title:focus-visible {
-    color: var(--accent);
+  color: var(--accent);
 }
 
 .feed-chose,
@@ -2587,12 +2587,6 @@ a.feed-title:focus-visible {
   min-height: 90px;
 }
 
-.option-box.is-selected {
-    background: rgba(180, 144, 242, 0.08);
-    border-color: var(--accent);
-    /* box-shadow: 0 0 0 2px rgba(155, 93, 229, 0.2); */
-}
-
 .optional {
   color: var(--muted);
   font-size: 12px;
@@ -3040,8 +3034,36 @@ a.feed-title:focus-visible {
   }
 }
 
-.decision-field {
-    margin-bottom: 28px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--line);
+/* Comments on a decision (jspf/comments.jspf): the form above, the thread below, newest first. */
+.comment-form {
+  margin-top: 16px;
+}
+
+.comment-form > .pill {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+.comment-thread {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+}
+
+.comment-entry {
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.comment-entry:last-child {
+  padding-bottom: 0;
+}
+
+.comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#comments {
+  scroll-margin-top: 24px;
 }
