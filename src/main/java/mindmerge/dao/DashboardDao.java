@@ -11,7 +11,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Reading decisions, for the dashboard, the approval pages, a project's page and a decision's page.
@@ -130,10 +132,16 @@ public class DashboardDao {
      * searching or filtering. mineOnly limits it to decisions the viewer recorded; query is a full-text
      * search and tagName a tag filter (either may be empty: a blank tagName means "All tags").
      */
-    public List<Decision> findFeed(int userId, boolean mineOnly, String query, String tagName)
+    public List<Decision> findFeed(int userId, boolean mineOnly, String query, List<Integer> projectIds, List<String> statuses, List<String> tagNames, List<String> authorNames, int page, int pageSize)
             throws SQLException {
         String search = toBooleanSearch(query);
-        String tag = tagName == null || tagName.trim().isEmpty() ? null : tagName.trim();
+        page = Math.max(page, 1);
+        int offset = (page - 1) * pageSize;
+
+        projectIds = projectIds == null ? Collections.emptyList() : projectIds;
+        statuses = statuses == null ? Collections.emptyList() : statuses.stream().filter(s -> s != null && !s.trim().isEmpty()).map(String::trim).collect(Collectors.toList());
+        tagNames = tagNames == null ? Collections.emptyList() : tagNames.stream().filter(t -> t != null && !t.trim().isEmpty()).map(String::trim).collect(Collectors.toList());
+        authorNames = authorNames == null ? Collections.emptyList() : authorNames.stream().filter(t -> t != null && !t.trim().isEmpty()).map(String::trim).collect(Collectors.toList());
 
         // DECISIONS already restricts results to teams the viewer belongs to.
         StringBuilder sql = new StringBuilder(DECISIONS).append("WHERE 1 = 1 ");
@@ -143,13 +151,34 @@ public class DashboardDao {
         if (search != null) {
             sql.append("AND MATCH (d.title, d.context, d.rationale) AGAINST (? IN BOOLEAN MODE) ");
         }
-        if (tag != null) {
+        if (!projectIds.isEmpty()) {
+            sql.append("AND d.project_id IN (");
+            for (int i=0; i<projectIds.size()-1; i++){sql.append("?, ");}
+            sql.append("?) ");
+        }
+        if (!statuses.isEmpty()) {
+            sql.append("AND d.status IN (");
+            for (int i=0; i<statuses.size()-1; i++){sql.append("?, ");}
+            sql.append("?) ");
+        }
+        if (!authorNames.isEmpty()) {
+            sql.append("AND d.created_by IN (")
+                .append("SELECT u.user_id ")
+                .append("FROM user u ")
+                .append("WHERE ");
+            for (int j = 0; j < authorNames.size(); j++) { 
+                if (j > 0) {sql.append(" OR ");}
+                sql.append("u.full_name LIKE ?");
+            }
+            sql.append(") ");
+        }
+        for (int tagIndex = 0; tagIndex < tagNames.size(); tagIndex++) {
             // EXISTS matches the tag without adding a duplicate row per tag.
             sql.append("AND EXISTS (SELECT 1 FROM decision_tag filter_dt " +
                        "JOIN tag filter_t ON filter_t.tag_id = filter_dt.tag_id " +
                        "WHERE filter_dt.decision_id = d.decision_id AND filter_t.name = ?) ");
         }
-        sql.append(FEED_ORDER).append("LIMIT ").append(search == null && tag == null ? RECENT_LIMIT : SEARCH_LIMIT);
+        sql.append(FEED_ORDER).append("LIMIT ? OFFSET ?");
 
         try (Connection conn = DbUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -159,7 +188,13 @@ public class DashboardDao {
             ps.setInt(i++, userId);
             if (mineOnly) ps.setInt(i++, userId);
             if (search != null) ps.setString(i++, search);
-            if (tag != null) ps.setString(i++, tag);
+            for (Integer projectId : projectIds) {ps.setInt(i++, projectId);}
+            for (String status : statuses) {ps.setString(i++, status);}
+            for (String authorName : authorNames) {ps.setString(i++, "%" + authorName.trim() + "%");}
+            for (String tagName : tagNames) {ps.setString(i++, tagName);}
+            ps.setInt(i++, pageSize + 1); // + 1 to check if there is next page
+            ps.setInt(i++, offset);
+
             return readDecisions(ps);
         }
     }

@@ -14,6 +14,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @WebServlet("/dashboard")
 public class DashboardServlet extends HttpServlet {
@@ -37,7 +41,10 @@ public class DashboardServlet extends HttpServlet {
         // Reads the selected tag from the url
         String tag = request.getParameter("tag");
         tag = tag == null ? "" : tag.trim();
+        List<String> tagList = new ArrayList<>(Arrays.asList(tag));
 
+        List<Integer> emptyIntList = Collections.emptyList();
+        List<String> emptyStrList = Collections.emptyList();
         
         boolean mineOnly = "mine".equals(request.getParameter("view"));
 
@@ -53,7 +60,7 @@ public class DashboardServlet extends HttpServlet {
             request.setAttribute("invites", inviteDao.findPendingForUser(userId));
             request.setAttribute("review", dashboardDao.findNeedsReview(userId));
             request.setAttribute("inReview", dashboardDao.findMyInReview(userId));
-            request.setAttribute("feed", dashboardDao.findFeed(userId, mineOnly, query, tag));
+            request.setAttribute("feed", dashboardDao.findFeed(userId, mineOnly, query, emptyIntList, emptyStrList, tagList, emptyStrList, 1, 12));
             request.setAttribute("projects", dashboardDao.findProjects(userId));
             request.setAttribute("tags", dashboardDao.findTags(userId));
         } catch (SQLException e) {

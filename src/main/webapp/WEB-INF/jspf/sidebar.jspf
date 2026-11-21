@@ -12,7 +12,8 @@
        href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
     <a class="${activeNav eq 'create-decision' ? 'is-active' : ''}" ${activeNav eq 'create-decision' ? 'aria-current="page"' : ''}
        href="${pageContext.request.contextPath}/decisions/create">Create decision</a>
-    <span class="nav-soon" aria-disabled="true">Decisions <span class="soon">Soon</span></span>
+    <a class="${activeNav eq 'decisions' ? 'is-active' : ''}" ${activeNav eq 'decisions' ? 'aria-current="page"' : ''}
+      href="${pageContext.request.contextPath}/decisions">Decisions</a>
     <a class="${activeNav eq 'projects' ? 'is-active' : ''}" ${activeNav eq 'projects' ? 'aria-current="page"' : ''}
        href="${pageContext.request.contextPath}/projects">Projects</a>
     <%-- Only leads and approvers can approve, so only they get the link (ApprovalServlet still checks). --%>
