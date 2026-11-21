@@ -28,6 +28,20 @@
             <c:if test="${not empty decision.replacedBy}">
               <p class="feed-replaced">Replaced by <span><c:out value="${decision.replacedBy}"/></span></p>
             </c:if>
+            <c:if test="${not empty relatesTo}">
+              <p class="feed-replaced">Relates to
+                <c:forEach var="decision" items="${relatesTo}">
+                  <a href="${pageContext.request.contextPath}//decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
+                </c:forEach>
+              </p>
+            </c:if>
+            <c:if test="${not empty dependsOn}">
+              <p class="feed-replaced">Depends on
+                <c:forEach var="decision" items="${dependsOn}">
+                  <a href="${pageContext.request.contextPath}//decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
+                </c:forEach>
+              </p>
+            </c:if>
             <c:if test="${not empty decision.tags}">
               <ul class="tags">
                 <c:forEach var="t" items="${decision.tags}">
@@ -71,6 +85,11 @@
             </c:otherwise>
           </c:choose>
         </section>
+
+        <c:if test="${decision.status ne 'superseded'}">
+          <c:url var="supersedeUrl" value="/decisions/create"><c:param name="supersedesId" value="${decision.decisionId}"/></c:url>
+          <a class="pill pill-ghost pill-sm" href="${supersedeUrl}"> Supersede this decision </a>
+        </c:if>
 
         <%@ include file="/WEB-INF/jspf/comments.jspf" %>
 

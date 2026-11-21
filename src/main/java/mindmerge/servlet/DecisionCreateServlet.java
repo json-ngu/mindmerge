@@ -3,6 +3,7 @@ package mindmerge.servlet;
 import mindmerge.dao.DashboardDao;
 import mindmerge.dao.DecisionDao;
 import mindmerge.dao.UserDao;
+import mindmerge.model.Decision;
 import mindmerge.model.DecisionOption;
 import mindmerge.model.Project;
 import mindmerge.model.User;
@@ -58,7 +59,8 @@ public class DecisionCreateServlet extends HttpServlet {
         List<DecisionOption> options = readOptions(request);
         int selected = Auth.intParam(request, "selected");  // 1-based position of the selected option
         String rationale = Auth.trim(request.getParameter("rationale"));
-
+        int supersedesId = Auth.intParam(request,"supersedesId");
+        
         // Refill the form after an error.
         request.setAttribute("projectId", projectId);
         request.setAttribute("title", title);
@@ -88,6 +90,9 @@ public class DecisionCreateServlet extends HttpServlet {
                         DecisionOption o = options.get(i);
                         decisionDao.createOption(conn, decisionId, i + 1, o.getLabel(), o.getDescription(),
                                                  i + 1 == selected);
+                    }
+                    if(supersedesId != -1) {
+                        decisionDao.supersedeDecision(conn, supersedesId, decisionId);
                     }
                     conn.commit();
                 } catch (SQLException e) {
@@ -163,6 +168,26 @@ public class DecisionCreateServlet extends HttpServlet {
             getServletContext().log("Could not load the create decision page", e);
             request.setAttribute("error", "This page could not be loaded. Verify that the database is running.");
         }
+
+        String supersedesIdParam = request.getParameter("supersedesId");
+
+        if (supersedesIdParam != null && !supersedesIdParam.trim().isEmpty()) {
+            int supersedesId = Integer.parseInt(supersedesIdParam);
+            
+            try {
+                Decision oldDecision = dashboardDao.findVisible(user.getUserId(), supersedesId);
+                if (oldDecision != null) {
+                    request.setAttribute("supersededDecision", oldDecision);
+                    request.setAttribute("supersedesId", supersedesId);
+                } else {
+                    request.setAttribute( "error", "The decision could not be found.");
+                }
+            } catch (SQLException e) {
+                getServletContext().log("Could not load decision", e);
+                request.setAttribute("error", "This decision could not be loaded. Verify that the database is running.");
+            }
+        }
+
         request.getRequestDispatcher("/WEB-INF/decision-create.jsp").forward(request, response);
     }
 

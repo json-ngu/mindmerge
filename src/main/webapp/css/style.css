@@ -3118,6 +3118,7 @@ a.feed-title:focus-visible {
 
 .advanced-filters > summary {
    width: 117px;
+   cursor: pointer;
 }
 
 .advanced-filters[open] > .advanced-filter-panel {

@@ -3,6 +3,7 @@ package mindmerge.servlet;
 import mindmerge.dao.ApprovalDao;
 import mindmerge.dao.CommentDao;
 import mindmerge.dao.DashboardDao;
+import mindmerge.dao.DecisionDao;
 import mindmerge.dao.UserDao;
 import mindmerge.model.Decision;
 import mindmerge.model.User;
@@ -15,6 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * /decisions/details?id=<id> shows one decision: its context, options, rationale and status, its
@@ -25,6 +28,7 @@ import java.sql.SQLException;
 public class DecisionDetailServlet extends HttpServlet {
 
     private final DashboardDao dashboardDao = new DashboardDao();
+    private final DecisionDao decisionDao = new DecisionDao();
     private final ApprovalDao approvalDao = new ApprovalDao();
     private final CommentDao commentDao = new CommentDao();
     private final UserDao userDao = new UserDao();
@@ -83,7 +87,30 @@ public class DecisionDetailServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
+            List<Integer> relatedDecisionIds = decisionDao.getRelatedDecisions(decisionId, "relates_to");
+            List<Integer> dependsDecisionIds = decisionDao.getRelatedDecisions(decisionId, "depends_on");
+
+            List<Decision> relatesTo = new ArrayList<>();
+            List<Decision> dependsOn = new ArrayList<>();
+
+            for (Integer relatedId : relatedDecisionIds) {
+                Decision relatedDecision = dashboardDao.findVisible(user.getUserId(), relatedId);
+                if (relatedDecision != null) {
+                    relatesTo.add(relatedDecision);
+                }
+            }
+
+            for (Integer dependsId : dependsDecisionIds) {
+                Decision dependsDecision = dashboardDao.findVisible(user.getUserId(), dependsId);
+                if (dependsDecision != null) {
+                    dependsOn.add(dependsDecision);
+                }
+            }
+
+
             request.setAttribute("decision", decision);
+            request.setAttribute("relatesTo", relatesTo);
+            request.setAttribute("dependsOn", dependsOn);
             request.setAttribute("decisionOptions", approvalDao.findOptions(decisionId));
             request.setAttribute("decisions", dashboardDao.findByProject(decision.getProjectId()));
             request.setAttribute("comments", commentDao.findByDecision(decisionId, user.getUserId()));

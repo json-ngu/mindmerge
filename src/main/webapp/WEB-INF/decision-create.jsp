@@ -12,6 +12,14 @@
         <h1>Create decision</h1>
         <p class="dash-sub">Describe the decision, the options considered and the option you recommend. A team lead or approver will review and approve it.</p>
       </div>
+
+      
+      <c:if test="${not empty supersededDecision}">
+        <div>
+          <p>Supersede: <c:out value="${supersededDecision.title}"/> <br></p>
+          <p class="dash-sub"> Create a new decision that will replace this decision.</p>
+        </div>
+      </c:if>
     </header>
 
     <c:choose>
@@ -29,12 +37,20 @@
 
           <form class="form decision-form" method="post" action="${pageContext.request.contextPath}/decisions/create">
             <label for="projectId">Project</label>
-            <select id="projectId" class="select" name="projectId" required>
-              <option value="">Select a project</option>
-              <c:forEach var="p" items="${projects}">
-                <option value="${p.projectId}" ${p.projectId == projectId ? 'selected' : ''}><c:out value="${p.name}"/> (<c:out value="${p.teamName}"/>)</option>
-              </c:forEach>
-            </select>
+            <c:choose>
+              <c:when test="${not empty supersededDecision}">
+                <input type="hidden" name="projectId" value="${supersededDecision.projectId}">
+                <p><c:out value="${supersededDecision.projectName}"/></p>
+              </c:when>
+              <c:otherwise>
+                <select id="projectId" class="select" name="projectId" required>
+                  <option value="">Select a project</option>
+                  <c:forEach var="p" items="${projects}">
+                    <option value="${p.projectId}" ${p.projectId == projectId ? 'selected' : ''}><c:out value="${p.name}"/> (<c:out value="${p.teamName}"/>)</option>
+                  </c:forEach>
+                </select>
+              </c:otherwise>
+            </c:choose>
 
             <label for="title">Title</label>
             <input id="title" name="title" type="text" required maxlength="220"
@@ -71,6 +87,10 @@
             <label for="rationale">Rationale</label>
             <textarea id="rationale" name="rationale" required maxlength="10000"
                       placeholder="Explain why the selected option is preferred and which trade-offs are accepted."><c:out value="${rationale}"/></textarea>
+
+            <c:if test="${not empty supersedesId}">
+                <input type="hidden" name="supersedesId" value="${supersedesId}">
+            </c:if>
 
             <button class="pill pill-glow pill-block" type="submit">Submit for approval</button>
           </form>
