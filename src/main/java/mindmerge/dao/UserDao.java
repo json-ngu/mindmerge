@@ -43,6 +43,9 @@ public class UserDao {
     private static final String SET_ALLOW_INVITES =
         "UPDATE `user` SET allow_invites = ? WHERE user_id = ?";
 
+    private static final String SET_FULL_NAME =
+        "UPDATE `user` SET full_name = ? WHERE user_id = ?";
+
     private static final String CANCEL_PENDING_INVITES =
         "UPDATE company_invite SET status = 'cancelled', responded_at = NOW() " +
         "WHERE user_id = ? AND status = 'pending'";
@@ -107,6 +110,52 @@ public class UserDao {
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
+            }
+        }
+    }
+
+    public void setFullName(int userId, String fullName) throws SQLException {
+        try (Connection conn = DbUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SET_FULL_NAME)) {
+            ps.setString(1, fullName);
+            ps.setInt(2, userId);
+            if (ps.executeUpdate() != 1) {
+                throw new SQLException("Full name update did not match a user.");
+            }
+        }
+    }
+
+    /** Verify and replace credentials while holding the user's row lock. */
+    public boolean changePassword(int userId, String currentPassword, String newPassword) throws SQLException {
+        try (Connection conn = DbUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                boolean matches;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT password_hash, salt FROM `user` WHERE user_id = ? FOR UPDATE")) {
+                    ps.setInt(1, userId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        matches = rs.next() && PasswordUtil.matches(currentPassword,
+                                rs.getString("password_hash"), rs.getString("salt"));
+                    }
+                }
+                if (!matches) {
+                    conn.rollback();
+                    return false;
+                }
+                PasswordUtil.Hashed hashed = PasswordUtil.hash(newPassword);
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE `user` SET password_hash = ?, salt = ? WHERE user_id = ?")) {
+                    ps.setString(1, hashed.hash);
+                    ps.setString(2, hashed.salt);
+                    ps.setInt(3, userId);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Password update did not match a user.");
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
             }
         }
     }
