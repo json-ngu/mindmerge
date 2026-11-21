@@ -1,6 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<c:set var="pageTitle" value="Create decision | MindMerge"/>
+<c:set var="pageTitle" value="${editMode ? 'Edit proposal' : 'Create decision'} | MindMerge"/>
 <%@ include file="/WEB-INF/jspf/head.jspf" %>
 <body>
 <div class="app">
@@ -9,7 +9,7 @@
   <main class="app-main manage">
     <header class="manage-head">
       <div>
-        <h1>Create decision</h1>
+        <h1>${editMode ? 'Edit proposal' : 'Create decision'}</h1>
         <p class="dash-sub">Describe the decision, the options considered and the option you recommend. A team lead or approver will review and approve it.</p>
       </div>
 
@@ -23,7 +23,7 @@
     </header>
 
     <c:choose>
-      <c:when test="${empty projects and empty error}">
+      <c:when test="${not editMode and empty projects and empty error}">
         <section class="box" aria-labelledby="noProjectsHeading">
           <h2 id="noProjectsHeading">No projects available</h2>
           <p class="panel-note">You are not a member of any team with a project. Decisions are recorded within a project.</p>
@@ -35,7 +35,8 @@
             <p class="alert" role="alert"><c:out value="${error}"/></p>
           </c:if>
 
-          <form class="form decision-form" method="post" action="${pageContext.request.contextPath}/decisions/create">
+          <form class="form decision-form" method="post" action="${pageContext.request.contextPath}${editMode ? '/decisions/edit?id=' : '/decisions/create'}${editMode ? decisionId : ''}">
+            <c:if test="${not editMode}">
             <label for="projectId">Project</label>
             <c:choose>
               <c:when test="${not empty supersededDecision}">
@@ -51,6 +52,7 @@
                 </select>
               </c:otherwise>
             </c:choose>
+            </c:if>
 
             <label for="title">Title</label>
             <input id="title" name="title" type="text" required maxlength="220"
@@ -88,11 +90,11 @@
             <textarea id="rationale" name="rationale" required maxlength="10000"
                       placeholder="Explain why the selected option is preferred and which trade-offs are accepted."><c:out value="${rationale}"/></textarea>
 
-            <c:if test="${not empty supersedesId}">
+            <c:if test="${not editMode and not empty supersedesId}">
                 <input type="hidden" name="supersedesId" value="${supersedesId}">
             </c:if>
 
-            <button class="pill pill-glow pill-block" type="submit">Submit for approval</button>
+            <button class="pill pill-glow pill-block" type="submit">${editMode ? 'Save changes' : 'Submit for approval'}</button>
           </form>
         </section>
       </c:otherwise>

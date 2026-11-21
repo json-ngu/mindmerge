@@ -1,5 +1,7 @@
 package mindmerge.dao;
 
+import mindmerge.model.DecisionOption;
+import mindmerge.util.DbUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,8 +11,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import mindmerge.model.Decision;
-import mindmerge.util.DbUtil;
 
 /**
  * Writing a new decision and its options. Both methods take the caller's connection, so
@@ -18,6 +18,45 @@ import mindmerge.util.DbUtil;
  * Reading decisions is done by DashboardDao.
  */
 public class DecisionDao {
+
+    private static final String EDITABLE = "SELECT t.company_id FROM decision d JOIN project p ON p.project_id = d.project_id " +
+        "JOIN team t ON t.team_id = p.team_id WHERE d.decision_id = ? AND d.created_by = ? AND d.status = 'proposed' AND " + ProjectDao.CAN_SEE;
+
+    private int editableCompany(Connection conn, int id, int userId, boolean lock) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(EDITABLE + (lock ? " FOR UPDATE" : ""))) {
+            ps.setInt(1, id); ps.setInt(2, userId); ps.setInt(3, userId); ps.setInt(4, userId);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
+        }
+    }
+
+    public boolean canEdit(int id, int userId) throws SQLException {
+        try (Connection conn = DbUtil.getConnection()) { return editableCompany(conn, id, userId, false) != 0; }
+    }
+
+    public boolean update(int id, int userId, String title, String context, String rationale,
+                          List<DecisionOption> options, int selected) throws SQLException {
+        try (Connection conn = DbUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int companyId = editableCompany(conn, id, userId, true);
+                if (companyId == 0) { conn.rollback(); return false; }
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE decision SET title = ?, context = ?, rationale = ? WHERE decision_id = ?")) {
+                    ps.setString(1, title); ps.setString(2, context); ps.setString(3, rationale); ps.setInt(4, id); ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM decision_option WHERE decision_id = ?")) {
+                    ps.setInt(1, id); ps.executeUpdate();
+                }
+                for (int i = 0; i < options.size(); i++) {
+                    DecisionOption o = options.get(i);
+                    createOption(conn, id, i + 1, o.getLabel(), o.getDescription(), i + 1 == selected);
+                }
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id) VALUES (?, ?, 'update', 'decision', ?)")) {
+                    ps.setInt(1, userId); ps.setInt(2, companyId); ps.setInt(3, id); ps.executeUpdate();
+                }
+                conn.commit(); return true;
+            } catch (SQLException e) { conn.rollback(); throw e; }
+        }
+    }
 
     private static final String CREATE_DECISION =
         "INSERT INTO decision (project_id, created_by, title, context, rationale) VALUES (?, ?, ?, ?, ?)";

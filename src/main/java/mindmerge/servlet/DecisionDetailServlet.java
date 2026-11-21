@@ -111,6 +111,8 @@ public class DecisionDetailServlet extends HttpServlet {
             request.setAttribute("decision", decision);
             request.setAttribute("relatesTo", relatesTo);
             request.setAttribute("dependsOn", dependsOn);
+            request.setAttribute("canEdit", decisionDao.canEdit(decisionId, user.getUserId()));
+            Auth.consumeFlash(request);
             request.setAttribute("decisionOptions", approvalDao.findOptions(decisionId));
             request.setAttribute("decisions", dashboardDao.findByProject(decision.getProjectId()));
             request.setAttribute("comments", commentDao.findByDecision(decisionId, user.getUserId()));

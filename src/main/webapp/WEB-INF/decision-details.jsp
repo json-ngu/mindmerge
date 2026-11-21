@@ -31,14 +31,14 @@
             <c:if test="${not empty relatesTo}">
               <p class="feed-replaced">Relates to
                 <c:forEach var="decision" items="${relatesTo}">
-                  <a href="${pageContext.request.contextPath}//decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
+                  <a href="${pageContext.request.contextPath}/decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
                 </c:forEach>
               </p>
             </c:if>
             <c:if test="${not empty dependsOn}">
               <p class="feed-replaced">Depends on
                 <c:forEach var="decision" items="${dependsOn}">
-                  <a href="${pageContext.request.contextPath}//decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
+                  <a href="${pageContext.request.contextPath}/decisions/details?id=${decision.decisionId}"><c:out value="${decision.title}"/></a>
                 </c:forEach>
               </p>
             </c:if>
@@ -52,6 +52,8 @@
           </div>
         </header>
 
+        <%@ include file="/WEB-INF/jspf/notice.jspf" %>
+        <c:if test="${canEdit}"><p><a class="pill pill-ghost" href="${pageContext.request.contextPath}/decisions/edit?id=${decision.decisionId}">Edit proposal</a></p></c:if>
         <section class="box" aria-labelledby="contextHeading">
           <h2 id="contextHeading">Context</h2>
           <p class="prose"><c:out value="${decision.context}"/></p>

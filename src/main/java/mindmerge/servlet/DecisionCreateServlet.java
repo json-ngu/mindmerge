@@ -111,7 +111,7 @@ public class DecisionCreateServlet extends HttpServlet {
     }
 
     /** Returns the first problem with the submitted form, or null when it's valid. */
-    private String validate(String title, String context, List<DecisionOption> options,
+    static String validate(String title, String context, List<DecisionOption> options,
                             int selected, String rationale) {
         if (title.isEmpty() || context.isEmpty()) {
             return "Enter a title and context for the decision.";
@@ -192,7 +192,7 @@ public class DecisionCreateServlet extends HttpServlet {
     }
 
     /** Pairs each option name with its description, in the order they were sent. */
-    private List<DecisionOption> readOptions(HttpServletRequest request) {
+    static List<DecisionOption> readOptions(HttpServletRequest request) {
         String[] labels = request.getParameterValues("optionLabel");
         String[] descriptions = request.getParameterValues("optionDescription");
         List<DecisionOption> options = new ArrayList<>();
