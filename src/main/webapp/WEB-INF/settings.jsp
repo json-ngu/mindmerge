@@ -24,11 +24,40 @@
           <div><dt>Email</dt><dd><c:out value="${sessionScope.user.email}"/></dd></div>
           <div><dt>Companies</dt><dd><c:out value="${viewer.inCompany ? viewer.companies : 'None'}"/></dd></div>
         </dl>
+        <form class="form" method="post" action="${pageContext.request.contextPath}/settings">
+          <input type="hidden" name="action" value="updateName">
+          <label for="fullName">Full name</label>
+          <input id="fullName" name="fullName" type="text" required autocomplete="name"
+                 maxlength="${fullNameLimit}" value="<c:out value='${fullName}'/>"
+                 <c:if test="${not empty nameError}">aria-invalid="true" aria-describedby="nameError"</c:if>>
+          <c:if test="${not empty nameError}">
+            <p class="alert" id="nameError" role="alert"><c:out value="${nameError}"/></p>
+          </c:if>
+          <button class="pill pill-glow" type="submit">Save name</button>
+        </form>
+      </section>
+
+      <section class="box" aria-labelledby="passwordHeading">
+        <h2 id="passwordHeading">Change password</h2>
+        <form class="form" method="post" action="${pageContext.request.contextPath}/settings">
+          <input type="hidden" name="action" value="updatePassword">
+          <label for="currentPassword">Current password</label>
+          <input id="currentPassword" name="currentPassword" type="password" required autocomplete="current-password" maxlength="${passwordLimit}">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" name="newPassword" type="password" required autocomplete="new-password" maxlength="${passwordLimit}">
+          <label for="confirmPassword">Confirm new password</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" required autocomplete="new-password" maxlength="${passwordLimit}">
+          <c:if test="${not empty passwordError}">
+            <p class="alert" role="alert"><c:out value="${passwordError}"/></p>
+          </c:if>
+          <button class="pill pill-glow" type="submit">Change password</button>
+        </form>
       </section>
 
       <section class="box" aria-labelledby="invitesHeading">
         <h2 id="invitesHeading">Invitations</h2>
         <form class="toggle-form" method="post" action="${pageContext.request.contextPath}/settings">
+          <input type="hidden" name="action" value="updateInvites">
           <label class="toggle">
             <input type="checkbox" name="allowInvites" value="on" ${viewer.allowInvites ? 'checked' : ''} data-autosubmit>
             <span class="toggle-track" aria-hidden="true"></span>
