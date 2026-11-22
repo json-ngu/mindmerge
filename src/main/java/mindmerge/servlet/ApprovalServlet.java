@@ -6,6 +6,7 @@ import mindmerge.dao.UserDao;
 import mindmerge.model.Decision;
 import mindmerge.model.User;
 import mindmerge.util.Auth;
+import mindmerge.util.Limits;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -52,11 +53,30 @@ public class ApprovalServlet extends HttpServlet {
         if (user == null) return;
 
         int decisionId = Auth.intParam(request, "decision");
+        String action = request.getParameter("action");
+        if (!"approve".equals(action) && !"request_changes".equals(action) && !"reject".equals(action)) {
+            Auth.flash(request, "Unknown review action. No changes were made.", true);
+            response.sendRedirect(request.getContextPath() + "/approvals");
+            return;
+        }
+        String explanation = request.getParameter("explanation");
+        if ("request_changes".equals(action)) {
+            String error = ApprovalDao.explanationError(explanation);
+            if (error != null) {
+                request.setAttribute("explanation", explanation);
+                request.setAttribute("error", error);
+                showReview(request, response, user, decisionId);
+                return;
+            }
+        }
 
         try {
             Decision decision = dashboardDao.findReviewable(user.getUserId(), decisionId);
-            if (decision != null && approvalDao.decide(decisionId, user.getUserId())) {
-                Auth.flash(request, "Decision approved: " + decision.getTitle() + ".", false);
+            if (decision != null && ("approve".equals(action)
+                    ? approvalDao.decide(decisionId, user.getUserId())
+                    : "reject".equals(action) ? approvalDao.reject(decisionId, user.getUserId())
+                    : approvalDao.requestChanges(decisionId, user.getUserId(), explanation))) {
+                Auth.flash(request, ("approve".equals(action) ? "Decision approved: " : "reject".equals(action) ? "Proposal rejected: " : "Changes requested: ") + decision.getTitle() + ".", false);
             } else {
                 Auth.flash(request, NOT_REVIEWABLE, true);
             }
@@ -84,7 +104,7 @@ public class ApprovalServlet extends HttpServlet {
 
     private void showReview(HttpServletRequest request, HttpServletResponse response, User user,
                             int decisionId) throws ServletException, IOException {
-        String error = null;
+        String error = (String) request.getAttribute("error");
         try {
             Decision decision = dashboardDao.findReviewable(user.getUserId(), decisionId);
             if (decision == null) {
@@ -100,6 +120,7 @@ public class ApprovalServlet extends HttpServlet {
             error = "This decision could not be loaded. Verify that the database is running.";
         }
         request.setAttribute("activeNav", "approvals");
+        request.setAttribute("explanationLimit", Limits.COMMENT - ApprovalDao.CHANGE_LABEL.length());
         request.setAttribute("error", error);
         request.getRequestDispatcher("/WEB-INF/approval.jsp").forward(request, response);
     }

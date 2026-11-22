@@ -99,6 +99,7 @@
             <option value="Proposed">Proposed</option>
             <option value="Decided">Decided</option>
             <option value="Superseded">Superseded</option>
+            <option value="Rejected">Rejected</option>
           </select>
 
           <button class="pill pill-ghost pill-sm" type="button" onclick="addFilter('status', 'statusPicker', 'statusFilters')">+ Add status</button>

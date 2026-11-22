@@ -3,7 +3,7 @@
   <p class="feed-project"><c:out value="${d.projectName}"/></p>
   <a class="feed-title" href="${pageContext.request.contextPath}/decisions/details?id=${d.decisionId}"><c:out value="${d.title}"/></a>
   <c:if test="${not empty d.chosenOption}">
-    <p class="feed-chose"><c:out value="${d.status eq 'proposed' ? 'Proposed option:' : 'Selected option:'}"/> <span><c:out value="${d.chosenOption}"/></span></p>
+    <p class="feed-chose"><c:out value="${d.status eq 'proposed' or d.status eq 'rejected' ? 'Proposed option:' : 'Selected option:'}"/> <span><c:out value="${d.chosenOption}"/></span></p>
   </c:if>
   <c:if test="${not empty d.replacedBy}">
     <p class="feed-replaced">Replaced by <span><c:out value="${d.replacedBy}"/></span></p>

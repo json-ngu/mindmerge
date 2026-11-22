@@ -59,7 +59,20 @@
         <form class="approve-form" method="post" action="${pageContext.request.contextPath}/approvals">
           <input type="hidden" name="decision" value="${decision.decisionId}">
           <p class="panel-note">Approving makes the selected option the final decision for this project.</p>
-          <button class="pill pill-glow" type="submit">Approve decision</button>
+          <button class="pill pill-glow" type="submit" name="action" value="approve">Approve decision</button>
+        </form>
+        <form class="approve-form" method="post" action="${pageContext.request.contextPath}/approvals">
+          <input type="hidden" name="decision" value="${decision.decisionId}">
+          <p class="panel-note">Rejecting closes this proposal without approving its selected option.</p>
+          <button class="pill pill-glow" type="submit" name="action" value="reject">Reject proposal</button>
+        </form>
+        <form class="form comment-form" method="post" action="${pageContext.request.contextPath}/approvals">
+          <input type="hidden" name="decision" value="${decision.decisionId}">
+          <c:if test="${not empty error}"><p class="alert" role="alert"><c:out value="${error}"/></p></c:if>
+          <label for="explanation">Explanation for requested changes</label>
+          <textarea id="explanation" name="explanation" rows="4" maxlength="${explanationLimit}" required><c:out value="${explanation}"/></textarea>
+          <p class="panel-note">Explain what should change. Up to <c:out value="${explanationLimit}"/> characters.</p>
+          <button class="pill pill-glow" type="submit" name="action" value="request_changes">Request changes</button>
         </form>
       </c:otherwise>
     </c:choose>

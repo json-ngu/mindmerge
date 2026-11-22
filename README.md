@@ -29,7 +29,8 @@ This document covers how to set the project up and run it on macOS or Windows. T
 - **Projects**: team leads and company owners/admins create projects and set their status and
   description; each project page lists its decisions.
 - **Create decision and approvals**: record a decision with its options, the option you
-  recommend and your rationale; a team lead or approver reviews and approves it.
+  recommend and your rationale; a team lead or approver can approve it, request changes, or reject it.
+  For an existing database, run `sql/add-rejected-status.sql` before using rejection.
 - **Decision details and comments**: select a decision on the dashboard or a project page to
   see its context, options, rationale and newest-first discussion. Current team members, and
   the company's owners and administrators, can add permanent comments up to 2,000 characters.

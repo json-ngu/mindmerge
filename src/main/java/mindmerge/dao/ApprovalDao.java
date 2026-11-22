@@ -25,14 +25,27 @@ public class ApprovalDao {
         "SELECT t.company_id FROM decision d " +
         "JOIN project p ON p.project_id = d.project_id " +
         "JOIN team t ON t.team_id = p.team_id " +
-        "WHERE d.decision_id = ? AND d.status = 'proposed' FOR UPDATE";
+        "JOIN team_member tm ON tm.team_id = p.team_id AND tm.user_id = ? " +
+        "WHERE d.decision_id = ? AND d.status = 'proposed' AND d.created_by <> ? " +
+        "AND tm.left_at IS NULL AND tm.team_role IN ('lead', 'approver') FOR UPDATE";
 
     private static final String MARK_DECIDED =
         "UPDATE decision SET status = 'decided', decided_at = NOW() WHERE decision_id = ?";
 
+    private static final String MARK_REJECTED =
+        "UPDATE decision SET status = 'rejected' WHERE decision_id = ?";
+
     private static final String LOG =
         "INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id) " +
-        "VALUES (?, ?, 'decide', 'decision', ?)";
+        "VALUES (?, ?, ?, 'decision', ?)";
+
+    public static final String CHANGE_LABEL = "Changes requested:\n";
+
+    public static String explanationError(String explanation) {
+        String error = CommentDao.validationError(explanation);
+        if (error != null) return error;
+        return CommentDao.validationError(CHANGE_LABEL + explanation);
+    }
 
     public List<DecisionOption> findOptions(int decisionId) throws SQLException {
         List<DecisionOption> results = new ArrayList<>();
@@ -58,12 +71,28 @@ public class ApprovalDao {
      * Returns false, changing nothing, if it is no longer proposed.
      */
     public boolean decide(int decisionId, int userId) throws SQLException {
+        return review(decisionId, userId, "approve", null);
+    }
+
+    public boolean requestChanges(int decisionId, int userId, String explanation) throws SQLException {
+        String error = explanationError(explanation);
+        if (error != null) throw new IllegalArgumentException(error);
+        return review(decisionId, userId, "request_changes", explanation);
+    }
+
+    public boolean reject(int decisionId, int userId) throws SQLException {
+        return review(decisionId, userId, "reject", null);
+    }
+
+    private boolean review(int decisionId, int userId, String action, String explanation) throws SQLException {
         try (Connection conn = DbUtil.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 int companyId;
                 try (PreparedStatement ps = conn.prepareStatement(LOCK_PROPOSED)) {
-                    ps.setInt(1, decisionId);
+                    ps.setInt(1, userId);
+                    ps.setInt(2, decisionId);
+                    ps.setInt(3, userId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             conn.rollback();
@@ -72,14 +101,20 @@ public class ApprovalDao {
                         companyId = rs.getInt(1);
                     }
                 }
-                try (PreparedStatement ps = conn.prepareStatement(MARK_DECIDED)) {
-                    ps.setInt(1, decisionId);
-                    ps.executeUpdate();
+                if (!"request_changes".equals(action)) {
+                    try (PreparedStatement ps = conn.prepareStatement("approve".equals(action) ? MARK_DECIDED : MARK_REJECTED)) {
+                        ps.setInt(1, decisionId);
+                        ps.executeUpdate();
+                    }
+                } else if (!new CommentDao().create(conn, decisionId, userId, CHANGE_LABEL + explanation)) {
+                    conn.rollback();
+                    return false;
                 }
                 try (PreparedStatement ps = conn.prepareStatement(LOG)) {
                     ps.setInt(1, userId);
                     ps.setInt(2, companyId);
-                    ps.setInt(3, decisionId);
+                    ps.setString(3, "approve".equals(action) ? "decide" : action);
+                    ps.setInt(4, decisionId);
                     ps.executeUpdate();
                 }
                 conn.commit();

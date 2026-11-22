@@ -80,7 +80,7 @@ CREATE TABLE decision (
   title         VARCHAR(220)  NOT NULL,
   context       TEXT          NOT NULL,
   rationale     TEXT,
-  status        ENUM('proposed', 'decided', 'superseded') NOT NULL DEFAULT 'proposed',
+  status        ENUM('proposed', 'decided', 'superseded', 'rejected') NOT NULL DEFAULT 'proposed',
   decided_at    DATETIME,
   created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (project_id) REFERENCES project (project_id),

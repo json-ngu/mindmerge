@@ -23,7 +23,7 @@
             <p class="project-meta">
               <span class="status status-${decision.status}"><c:out value="${decision.status}"/></span>
               <span>Proposed by <c:out value="${decision.decidedBy}"/></span>
-              <span><c:out value="${decision.status eq 'proposed' ? 'Proposed on' : 'Decided on'}"/> <c:out value="${decision.dateAtTime(userZone)}"/></span>
+              <span><c:out value="${decision.status eq 'proposed' or decision.status eq 'rejected' ? 'Proposed on' : 'Decided on'}"/> <c:out value="${decision.dateAtTime(userZone)}"/></span>
             </p>
             <c:if test="${not empty decision.replacedBy}">
               <p class="feed-replaced">Replaced by <span><c:out value="${decision.replacedBy}"/></span></p>
@@ -88,7 +88,7 @@
           </c:choose>
         </section>
 
-        <c:if test="${decision.status ne 'superseded'}">
+        <c:if test="${decision.status ne 'superseded' and decision.status ne 'rejected'}">
           <c:url var="supersedeUrl" value="/decisions/create"><c:param name="supersedesId" value="${decision.decisionId}"/></c:url>
           <a class="pill pill-ghost pill-sm" href="${supersedeUrl}"> Supersede this decision </a>
         </c:if>

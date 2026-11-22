@@ -58,8 +58,15 @@ public class CommentDao {
     public boolean create(int decisionId, int userId, String body) throws SQLException {
         String error = validationError(body);
         if (error != null) throw new IllegalArgumentException(error);
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(CREATE)) {
+        try (Connection conn = DbUtil.getConnection()) {
+            return create(conn, decisionId, userId, body);
+        }
+    }
+
+    public boolean create(Connection conn, int decisionId, int userId, String body) throws SQLException {
+        String error = validationError(body);
+        if (error != null) throw new IllegalArgumentException(error);
+        try (PreparedStatement ps = conn.prepareStatement(CREATE)) {
             ps.setInt(1, decisionId);
             ps.setInt(2, userId);
             ps.setString(3, body);
