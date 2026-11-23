@@ -85,8 +85,10 @@ public class DecisionListServlet extends HttpServlet {
         if (values == null) return result;
 
         for (String value : values) {
-            if (value != null && !value.trim().isEmpty()) {
+            try {
                 result.add(Integer.parseInt(value.trim()));
+            } catch (NumberFormatException | NullPointerException e) {
+                // Skip ids that are not numbers, such as ?project=abc.
             }
         }
 

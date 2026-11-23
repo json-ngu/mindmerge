@@ -112,6 +112,14 @@ public class DecisionDetailServlet extends HttpServlet {
             request.setAttribute("relatesTo", relatesTo);
             request.setAttribute("dependsOn", dependsOn);
             request.setAttribute("canEdit", decisionDao.canEdit(decisionId, user.getUserId()));
+            // Only a decided decision can be replaced, and only by someone who can propose in its project.
+            boolean canSupersede = false;
+            if ("decided".equals(decision.getStatus())) {
+                for (mindmerge.model.Project p : dashboardDao.findProjects(user.getUserId())) {
+                    if (p.getProjectId() == decision.getProjectId()) canSupersede = true;
+                }
+            }
+            request.setAttribute("canSupersede", canSupersede);
             Auth.consumeFlash(request);
             request.setAttribute("decisionOptions", approvalDao.findOptions(decisionId));
             request.setAttribute("decisions", dashboardDao.findByProject(decision.getProjectId()));

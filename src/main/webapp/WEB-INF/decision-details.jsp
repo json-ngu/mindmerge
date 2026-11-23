@@ -88,7 +88,7 @@
           </c:choose>
         </section>
 
-        <c:if test="${decision.status ne 'superseded' and decision.status ne 'rejected'}">
+        <c:if test="${canSupersede}">
           <c:url var="supersedeUrl" value="/decisions/create"><c:param name="supersedesId" value="${decision.decisionId}"/></c:url>
           <a class="pill pill-ghost pill-sm" href="${supersedeUrl}"> Supersede this decision </a>
         </c:if>

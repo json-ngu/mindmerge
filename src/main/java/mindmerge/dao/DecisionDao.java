@@ -69,10 +69,6 @@ public class DecisionDao {
         "INSERT INTO decision_link (decision_id, related_decision_id, link_type) " +
         "VALUES (?, ?, 'supersedes')";
     
-    private static final String UPDATE_STATUS_SUPERSEDED = 
-        "UPDATE decision " +
-        "SET status = 'superseded' " +
-        "WHERE decision_id = ?";
 
     private static final String RELATED_DECISIONS = 
         "SELECT d.decision_id " +
@@ -118,14 +114,14 @@ public class DecisionDao {
         }
     }
 
-    public void supersedeDecision(Connection conn, int oldDecisionId, int newDecisionId) throws SQLException {
+    /**
+     * Records that the new (proposed) decision would replace the old one. The old decision stays
+     * decided until the new one is approved; ApprovalDao then marks it superseded.
+     */
+    public void linkSupersedes(Connection conn, int oldDecisionId, int newDecisionId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CREATE_SUPERSEDE_LINK)) {
             ps.setInt(1, newDecisionId);
             ps.setInt(2, oldDecisionId);
-            ps.executeUpdate();
-        }
-        try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_SUPERSEDED)) {
-            ps.setInt(1, oldDecisionId);
             ps.executeUpdate();
         }
     }

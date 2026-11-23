@@ -1320,6 +1320,11 @@ body.legal {
   background: rgba(214, 160, 40, 0.16);
 }
 
+.status-rejected {
+  color: var(--danger);
+  background: rgba(255, 122, 110, 0.12);
+}
+
 .status-superseded {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.06);
@@ -1785,6 +1790,11 @@ body.legal {
 .feed-superseded::before {
   background: var(--muted);
   box-shadow: 0 0 0 3px #08070c;
+}
+
+.feed-rejected::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px #08070c, 0 0 12px rgba(255, 122, 110, 0.6);
 }
 
 .feed-project {

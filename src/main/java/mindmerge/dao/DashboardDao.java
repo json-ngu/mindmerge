@@ -30,7 +30,7 @@ public class DashboardDao {
         "          FROM decision_tag dt JOIN tag t ON t.tag_id = dt.tag_id " +
         "         WHERE dt.decision_id = d.decision_id) AS tags, " +
         "       (SELECT r.title FROM decision_link l JOIN decision r ON r.decision_id = l.decision_id " +
-        "         WHERE l.related_decision_id = d.decision_id AND l.link_type = 'supersedes' " +
+        "         WHERE l.related_decision_id = d.decision_id AND l.link_type = 'supersedes' AND r.status = 'decided' " +
         "         LIMIT 1) AS replaced_by " +
         "FROM decision d " +
         "JOIN project p ON p.project_id = d.project_id " +
@@ -58,8 +58,6 @@ public class DashboardDao {
         DECISIONS + "WHERE d.status = 'proposed' AND d.created_by = ? ORDER BY d.created_at DESC";
 
     private static final String FEED_ORDER = "ORDER BY COALESCE(d.decided_at, d.created_at) DESC ";
-    private static final int RECENT_LIMIT = 12;  // the plain Recent decisions list
-    private static final int SEARCH_LIMIT = 200; // a search or tag filter shows every match, up to this cap
 
     // One decision, for its own page, if the viewer may see it (ProjectDao.CAN_SEE).
     // Parameters: the decision id, then the viewer's id twice.

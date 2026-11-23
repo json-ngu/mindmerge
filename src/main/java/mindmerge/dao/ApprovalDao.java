@@ -35,6 +35,12 @@ public class ApprovalDao {
     private static final String MARK_REJECTED =
         "UPDATE decision SET status = 'rejected' WHERE decision_id = ?";
 
+    // On approval, the decisions this one supersedes stop being current.
+    private static final String SUPERSEDE_REPLACED =
+        "UPDATE decision old JOIN decision_link l ON l.related_decision_id = old.decision_id " +
+        "SET old.status = 'superseded' " +
+        "WHERE l.decision_id = ? AND l.link_type = 'supersedes' AND old.status = 'decided'";
+
     private static final String LOG =
         "INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id) " +
         "VALUES (?, ?, ?, 'decision', ?)";
@@ -105,6 +111,12 @@ public class ApprovalDao {
                     try (PreparedStatement ps = conn.prepareStatement("approve".equals(action) ? MARK_DECIDED : MARK_REJECTED)) {
                         ps.setInt(1, decisionId);
                         ps.executeUpdate();
+                    }
+                    if ("approve".equals(action)) {
+                        try (PreparedStatement ps = conn.prepareStatement(SUPERSEDE_REPLACED)) {
+                            ps.setInt(1, decisionId);
+                            ps.executeUpdate();
+                        }
                     }
                 } else if (!new CommentDao().create(conn, decisionId, userId, CHANGE_LABEL + explanation)) {
                     conn.rollback();

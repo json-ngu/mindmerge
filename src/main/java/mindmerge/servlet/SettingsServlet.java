@@ -101,7 +101,7 @@ public class SettingsServlet extends HttpServlet {
                 }
                 request.setAttribute("passwordError", "Current password is incorrect.");
             } catch (SQLException e) {
-                getServletContext().log("Could not change password");
+                getServletContext().log("Could not change password", e);
                 request.setAttribute("passwordError", "The database is unavailable. Your password was not changed.");
             }
         }

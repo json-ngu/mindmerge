@@ -61,7 +61,8 @@
           <p class="panel-note">Approving makes the selected option the final decision for this project.</p>
           <button class="pill pill-glow" type="submit" name="action" value="approve">Approve decision</button>
         </form>
-        <form class="approve-form" method="post" action="${pageContext.request.contextPath}/approvals">
+        <form class="approve-form" method="post" action="${pageContext.request.contextPath}/approvals"
+              data-confirm="Reject this proposal? It will be closed without being approved.">
           <input type="hidden" name="decision" value="${decision.decisionId}">
           <p class="panel-note">Rejecting closes this proposal without approving its selected option.</p>
           <button class="pill pill-glow" type="submit" name="action" value="reject">Reject proposal</button>
@@ -78,5 +79,6 @@
     </c:choose>
   </main>
 </div>
+<script src="${pageContext.request.contextPath}/js/manage.js"></script>
 </body>
 </html>

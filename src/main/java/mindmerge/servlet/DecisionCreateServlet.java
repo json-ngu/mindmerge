@@ -81,6 +81,15 @@ public class DecisionCreateServlet extends HttpServlet {
                 showForm(request, response, user, "Select one of your projects.");
                 return;
             }
+            // The id comes from a hidden field, so check it: only a decided decision the viewer can see,
+            // in the same project, may be superseded.
+            if (supersedesId != -1) {
+                Decision old = dashboardDao.findVisible(user.getUserId(), supersedesId);
+                if (old == null || !"decided".equals(old.getStatus()) || old.getProjectId() != projectId) {
+                    showForm(request, response, user, "Only a decided decision in the same project can be superseded.");
+                    return;
+                }
+            }
 
             try (Connection conn = DbUtil.getConnection()) {
                 conn.setAutoCommit(false);
@@ -92,7 +101,7 @@ public class DecisionCreateServlet extends HttpServlet {
                                                  i + 1 == selected);
                     }
                     if(supersedesId != -1) {
-                        decisionDao.supersedeDecision(conn, supersedesId, decisionId);
+                        decisionDao.linkSupersedes(conn, supersedesId, decisionId);
                     }
                     conn.commit();
                 } catch (SQLException e) {
@@ -169,14 +178,12 @@ public class DecisionCreateServlet extends HttpServlet {
             request.setAttribute("error", "This page could not be loaded. Verify that the database is running.");
         }
 
-        String supersedesIdParam = request.getParameter("supersedesId");
+        if (request.getParameter("supersedesId") != null) {
+            int supersedesId = Auth.intParam(request, "supersedesId"); // -1 when it is not a number
 
-        if (supersedesIdParam != null && !supersedesIdParam.trim().isEmpty()) {
-            int supersedesId = Integer.parseInt(supersedesIdParam);
-            
             try {
                 Decision oldDecision = dashboardDao.findVisible(user.getUserId(), supersedesId);
-                if (oldDecision != null) {
+                if (oldDecision != null && "decided".equals(oldDecision.getStatus())) {
                     request.setAttribute("supersededDecision", oldDecision);
                     request.setAttribute("supersedesId", supersedesId);
                 } else {
