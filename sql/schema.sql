@@ -109,9 +109,13 @@ CREATE TABLE decision_link (
   CHECK (decision_id <> related_decision_id)
 );
 
+-- Each company has its own tag list; a name is unique within its company.
 CREATE TABLE tag (
   tag_id        INT           AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(100)  NOT NULL UNIQUE
+  company_id    INT           NOT NULL,
+  name          VARCHAR(100)  NOT NULL,
+  UNIQUE (company_id, name),
+  FOREIGN KEY (company_id) REFERENCES company (company_id)
 );
 
 CREATE TABLE decision_tag (
@@ -396,37 +400,62 @@ INSERT INTO decision_link (decision_id, related_decision_id, link_type, created_
   (8, 6, 'relates_to', '2026-03-01 14:15:00'),
   (8, 7, 'relates_to', '2026-09-09 11:45:00');
 
-INSERT INTO tag (tag_id, name) VALUES
-  (1,  'infrastructure'),
-  (2,  'database'),
-  (3,  'performance'),
-  (4,  'security'),
-  (5,  'cost'),
-  (6,  'tooling'),
-  (7,  'hardware'),
-  (8,  'user-experience'),
-  (9,  'data-model'),
-  (10, 'reversible'),
-  (11, 'one-way-door'),
-  (12, 'compatibility');
+INSERT INTO tag (tag_id, company_id, name) VALUES
+  -- MindMerge
+  (1, 1, 'infrastructure'),
+  (2, 1, 'database'),
+  (3, 1, 'performance'),
+  (4, 1, 'tooling'),
+  (5, 1, 'user-experience'),
+  (6, 1, 'data-model'),
+  (7, 1, 'reversible'),
+  (8, 1, 'one-way-door'),
+  (9, 1, 'compatibility'),
+  -- NVIDIA
+  (10, 2, 'performance'),
+  (11, 2, 'cost'),
+  (12, 2, 'tooling'),
+  (13, 2, 'reversible'),
+  -- Intel
+  (14, 3, 'performance'),
+  (15, 3, 'compatibility'),
+  -- Apple
+  (16, 4, 'hardware'),
+  -- AMD
+  (17, 5, 'performance'),
+  (18, 5, 'hardware'),
+  -- Qualcomm
+  (19, 6, 'performance'),
+  -- Cisco Systems
+  (20, 7, 'infrastructure'),
+  (21, 7, 'security'),
+  -- Oracle
+  (22, 8, 'database'),
+  (23, 8, 'performance'),
+  -- Adobe
+  (24, 9, 'performance'),
+  (25, 9, 'hardware'),
+  -- Salesforce
+  (26, 10, 'database'),
+  (27, 10, 'data-model');
 
 INSERT INTO decision_tag (decision_id, tag_id) VALUES
-  (1, 2), (1, 9), (1, 11),
-  (2, 12), (2, 6),
-  (3, 2), (3, 3), (3, 11),
-  (4, 6), (4, 1),
-  (5, 8), (5, 10),
-  (6, 3), (6, 6),
-  (7, 3), (7, 5),
-  (8, 6), (8, 10),
-  (9, 3), (9, 12),
-  (10, 7),
-  (11, 7), (11, 3),
-  (12, 3),
-  (13, 1), (13, 4),
-  (14, 2), (14, 3),
-  (15, 7), (15, 3),
-  (16, 2), (16, 9);
+  (1, 2), (1, 6), (1, 8),
+  (2, 9), (2, 4),
+  (3, 2), (3, 3), (3, 8),
+  (4, 4), (4, 1),
+  (5, 5), (5, 7),
+  (6, 10), (6, 12),
+  (7, 10), (7, 11),
+  (8, 12), (8, 13),
+  (9, 14), (9, 15),
+  (10, 16),
+  (11, 18), (11, 17),
+  (12, 19),
+  (13, 20), (13, 21),
+  (14, 22), (14, 23),
+  (15, 25), (15, 24),
+  (16, 26), (16, 27);
 
 INSERT INTO comment (comment_id, decision_id, user_id, body, created_at) VALUES
   (1,  1,  1,  'Agreed on relational. Worth writing down that this also makes the ER diagram assignment match what we actually built.', '2026-01-20 10:30:00'),

@@ -24,6 +24,8 @@ This document covers how to set the project up and run it on macOS or Windows. T
 - **People** (owners and admins): invite existing users by email, change roles, and remove
   members. Invites appear on the invited person's dashboard to join or decline.
 - **Teams** (owners and admins): create teams and add members as lead, approver or member.
+- **Tags** (owners and admins): each company has its own tag list, created and renamed on the
+  Tags page. Members pick from their company's tags when they create or edit a decision.
 - **History is kept**: removing someone only ends their membership. Their decisions, comments
   and past memberships stay in the database.
 - **Projects**: team leads and company owners/admins create projects and set their status and
@@ -36,7 +38,7 @@ This document covers how to set the project up and run it on macOS or Windows. T
   See [the comments guide](docs/comments.md) for code explanations, focused checks and manual
   testing steps.
 
-**Coming next** (shown as "Soon" in the sidebar): the decisions list, tags and the audit log.
+**Coming next** (shown as "Soon" in the sidebar): the audit log.
 
 ## Demo accounts
 

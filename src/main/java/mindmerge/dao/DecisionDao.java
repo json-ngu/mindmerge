@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 
@@ -34,7 +35,7 @@ public class DecisionDao {
     }
 
     public boolean update(int id, int userId, String title, String context, String rationale,
-                          List<DecisionOption> options, int selected) throws SQLException {
+                          List<DecisionOption> options, int selected, List<Integer> tagIds) throws SQLException {
         try (Connection conn = DbUtil.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -50,6 +51,7 @@ public class DecisionDao {
                     DecisionOption o = options.get(i);
                     createOption(conn, id, i + 1, o.getLabel(), o.getDescription(), i + 1 == selected);
                 }
+                setTags(conn, id, tagIds);
                 try (PreparedStatement ps = conn.prepareStatement("INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id) VALUES (?, ?, 'update', 'decision', ?)")) {
                     ps.setInt(1, userId); ps.setInt(2, companyId); ps.setInt(3, id); ps.executeUpdate();
                 }
@@ -64,6 +66,17 @@ public class DecisionDao {
     private static final String CREATE_OPTION =
         "INSERT INTO decision_option (decision_id, option_num, label, description, is_chosen) " +
         "VALUES (?, ?, ?, ?, ?)";
+
+    // Only a tag of the decision's own company is saved; any other tag id inserts nothing.
+    private static final String ADD_TAG =
+        "INSERT INTO decision_tag (decision_id, tag_id) " +
+        "SELECT d.decision_id, tg.tag_id FROM decision d " +
+        "JOIN project p ON p.project_id = d.project_id " +
+        "JOIN team t ON t.team_id = p.team_id " +
+        "JOIN tag tg ON tg.company_id = t.company_id " +
+        "WHERE d.decision_id = ? AND tg.tag_id = ?";
+
+    private static final String CLEAR_TAGS = "DELETE FROM decision_tag WHERE decision_id = ?";
 
     private static final String CREATE_SUPERSEDE_LINK = 
         "INSERT INTO decision_link (decision_id, related_decision_id, link_type) " +
@@ -111,6 +124,21 @@ public class DecisionDao {
             }
             ps.setBoolean(5, chosen);
             ps.executeUpdate();
+        }
+    }
+
+    /** Replaces the decision's tags, inside the caller's transaction. Repeated ids are saved once. */
+    public void setTags(Connection conn, int decisionId, List<Integer> tagIds) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(CLEAR_TAGS)) {
+            ps.setInt(1, decisionId);
+            ps.executeUpdate();
+        }
+        for (int tagId : new LinkedHashSet<>(tagIds)) {
+            try (PreparedStatement ps = conn.prepareStatement(ADD_TAG)) {
+                ps.setInt(1, decisionId);
+                ps.setInt(2, tagId);
+                ps.executeUpdate();
+            }
         }
     }
 

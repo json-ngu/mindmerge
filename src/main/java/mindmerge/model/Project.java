@@ -14,6 +14,7 @@ public class Project {
     private String        status;       // active, on_hold, completed, archived
     private String        teamName;
     private String        companyName;
+    private int           companyId;    // set for the Create decision project list, to match its tags
     private int           decisionCount;
     private LocalDateTime lastActivity; // null when the project has no decisions yet
     private boolean       member;       // the viewer is on the project's team, so may record decisions
@@ -36,6 +37,9 @@ public class Project {
 
     public String getCompanyName()             { return companyName; }
     public void setCompanyName(String v)       { this.companyName = v; }
+
+    public int getCompanyId()                  { return companyId; }
+    public void setCompanyId(int v)            { this.companyId = v; }
 
     public int getDecisionCount()              { return decisionCount; }
     public void setDecisionCount(int v)        { this.decisionCount = v; }

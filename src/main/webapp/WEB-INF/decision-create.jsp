@@ -47,7 +47,7 @@
                 <select id="projectId" class="select" name="projectId" required>
                   <option value="">Select a project</option>
                   <c:forEach var="p" items="${projects}">
-                    <option value="${p.projectId}" ${p.projectId == projectId ? 'selected' : ''}><c:out value="${p.name}"/> (<c:out value="${p.teamName}"/>)</option>
+                    <option value="${p.projectId}" data-company="${p.companyId}" ${p.projectId == projectId ? 'selected' : ''}><c:out value="${p.name}"/> (<c:out value="${p.teamName}"/>)</option>
                   </c:forEach>
                 </select>
               </c:otherwise>
@@ -89,6 +89,22 @@
             <label for="rationale">Rationale</label>
             <textarea id="rationale" name="rationale" required maxlength="10000"
                       placeholder="Explain why the selected option is preferred and which trade-offs are accepted."><c:out value="${rationale}"/></textarea>
+
+            <c:if test="${not empty tagChoices}">
+              <fieldset class="tag-picker" id="tagPicker">
+                <legend class="options-heading">Tags <span class="optional">(optional)</span></legend>
+                <p class="panel-note">Select the tags that describe this decision. Administrators manage each company's tags on the Tags page.</p>
+                <div class="tag-choices">
+                  <c:forEach var="t" items="${tagChoices}">
+                    <label class="tag-choice" data-company="${t.companyId}">
+                      <input type="checkbox" name="tag" value="${t.tagId}" ${selectedTags.contains(t.tagId) ? 'checked' : ''}>
+                      <span class="tag tag-${t.color}"><c:out value="${t.name}"/></span>
+                    </label>
+                  </c:forEach>
+                </div>
+                <p class="panel-note tag-picker-note" hidden></p>
+              </fieldset>
+            </c:if>
 
             <c:if test="${not editMode and not empty supersedesId}">
                 <input type="hidden" name="supersedesId" value="${supersedesId}">

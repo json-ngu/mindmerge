@@ -55,3 +55,38 @@
   addButton.hidden = false;
   renumber();
 })();
+
+// Tag picker: each company has its own tags, so show only the selected project's company's tags.
+// Without JavaScript every tag shows, and the server saves only tags of the project's company.
+(function () {
+  "use strict";
+
+  var select = document.getElementById("projectId");
+  var picker = document.getElementById("tagPicker");
+  if (!select || !picker) return;
+
+  var choices = picker.querySelectorAll(".tag-choice");
+  var note = picker.querySelector(".tag-picker-note");
+
+  function update() {
+    var option = select.options[select.selectedIndex];
+    var company = option ? option.getAttribute("data-company") : null;
+    var shown = 0;
+    for (var i = 0; i < choices.length; i++) {
+      var match = company !== null && choices[i].getAttribute("data-company") === company;
+      choices[i].hidden = !match;
+      if (match) {
+        shown++;
+      } else {
+        choices[i].querySelector("input").checked = false;
+      }
+    }
+    note.hidden = shown > 0;
+    note.textContent = company === null
+      ? "Select a project to choose its tags."
+      : "This project's company has no tags yet.";
+  }
+
+  select.addEventListener("change", update);
+  update();
+})();

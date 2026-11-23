@@ -23,6 +23,7 @@ public final class Limits {
 
     public static final int TEXT = 10000;          // context, rationale and descriptions (TEXT columns)
     public static final int COMMENT = 2000;        // a comment's body (comment.body)
+    public static final int TAG_NAME = 100;        // tag.name
 
     private Limits() {
     }

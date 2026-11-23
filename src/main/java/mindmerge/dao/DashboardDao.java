@@ -71,14 +71,14 @@ public class DashboardDao {
 
     // The viewer's projects for the dashboard's "Your projects" panel, most recently active first.
     private static final String FIND_PROJECTS =
-        "SELECT p.project_id, p.name, p.status, t.name AS team_name, " +
+        "SELECT p.project_id, p.name, p.status, t.name AS team_name, t.company_id, " +
         "       COUNT(d.decision_id) AS decision_count, " +
         "       MAX(COALESCE(d.decided_at, d.created_at)) AS last_activity " +
         "FROM project p " +
         "JOIN team t ON t.team_id = p.team_id " +
         "JOIN team_member tm ON tm.team_id = p.team_id AND tm.user_id = ? AND tm.left_at IS NULL " +
         "LEFT JOIN decision d ON d.project_id = p.project_id " +
-        "GROUP BY p.project_id, p.name, p.status, t.name " +
+        "GROUP BY p.project_id, p.name, p.status, t.name, t.company_id " +
         "ORDER BY last_activity IS NULL, last_activity DESC";
 
     // Tags used on decisions in the viewer's teams (the same scope as the feed), for the tag filter.
@@ -234,6 +234,7 @@ public class DashboardDao {
                     p.setName(rs.getString("name"));
                     p.setStatus(rs.getString("status"));
                     p.setTeamName(rs.getString("team_name"));
+                    p.setCompanyId(rs.getInt("company_id"));
                     p.setDecisionCount(rs.getInt("decision_count"));
                     p.setLastActivity(rs.getObject("last_activity", LocalDateTime.class));
                     results.add(p);

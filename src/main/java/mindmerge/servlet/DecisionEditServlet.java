@@ -3,6 +3,7 @@ package mindmerge.servlet;
 import mindmerge.dao.ApprovalDao;
 import mindmerge.dao.DashboardDao;
 import mindmerge.dao.DecisionDao;
+import mindmerge.dao.TagDao;
 import mindmerge.dao.UserDao;
 import mindmerge.model.Decision;
 import mindmerge.model.DecisionOption;
@@ -24,6 +25,7 @@ public class DecisionEditServlet extends HttpServlet {
     private final DashboardDao dashboard = new DashboardDao();
     private final ApprovalDao approvals = new ApprovalDao();
     private final UserDao users = new UserDao();
+    private final TagDao tags = new TagDao();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -39,6 +41,7 @@ public class DecisionEditServlet extends HttpServlet {
             request.setAttribute("context", decision.getContext());
             request.setAttribute("rationale", decision.getRationale());
             request.setAttribute("options", options);
+            request.setAttribute("selectedTags", tags.findIdsForDecision(id));
             for (int i = 0; i < options.size(); i++) {
                 if (options.get(i).isChosen()) request.setAttribute("selected", i + 1);
             }
@@ -58,6 +61,8 @@ public class DecisionEditServlet extends HttpServlet {
         String context = Auth.trim(request.getParameter("context"));
         String rationale = Auth.trim(request.getParameter("rationale"));
         List<DecisionOption> options = DecisionCreateServlet.readOptions(request);
+        List<Integer> tagIds = DecisionCreateServlet.readTagIds(request);
+        request.setAttribute("selectedTags", tagIds);
         String[] selections = request.getParameterValues("selected");
         int selected = selections != null && selections.length == 1 ? Auth.intParam(request, "selected") : 0;
         request.setAttribute("title", title);
@@ -69,7 +74,7 @@ public class DecisionEditServlet extends HttpServlet {
             if (!decisions.canEdit(id, user.getUserId())) { response.sendError(404); return; }
             String error = DecisionCreateServlet.validate(title, context, options, selected, rationale);
             if (error != null) { show(request, response, user, id, error); return; }
-            if (!decisions.update(id, user.getUserId(), title, context, rationale, options, selected)) {
+            if (!decisions.update(id, user.getUserId(), title, context, rationale, options, selected, tagIds)) {
                 response.sendError(409, "This proposal can no longer be edited."); return;
             }
             Auth.flash(request, "Proposal updated.", false);
@@ -86,8 +91,10 @@ public class DecisionEditServlet extends HttpServlet {
         request.setAttribute("decisionId", id);
         request.setAttribute("activeNav", "projects");
         request.setAttribute("error", error);
-        try { request.setAttribute("viewer", users.findViewer(user.getUserId())); }
-        catch (SQLException e) { getServletContext().log("Could not load viewer", e); }
+        try {
+            request.setAttribute("viewer", users.findViewer(user.getUserId()));
+            request.setAttribute("tagChoices", tags.findForDecisionCompany(id)); // the proposal's company only
+        } catch (SQLException e) { getServletContext().log("Could not load viewer", e); }
         request.getRequestDispatcher("/WEB-INF/decision-create.jsp").forward(request, response);
     }
 }

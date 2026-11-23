@@ -28,7 +28,8 @@
          href="${pageContext.request.contextPath}/people">People</a>
       <a class="${activeNav eq 'teams' ? 'is-active' : ''}" ${activeNav eq 'teams' ? 'aria-current="page"' : ''}
          href="${pageContext.request.contextPath}/teams">Teams</a>
-      <span class="nav-soon" aria-disabled="true">Tags <span class="soon">Soon</span></span>
+      <a class="${activeNav eq 'tags' ? 'is-active' : ''}" ${activeNav eq 'tags' ? 'aria-current="page"' : ''}
+         href="${pageContext.request.contextPath}/tags">Tags</a>
       <span class="nav-soon" aria-disabled="true">Audit log <span class="soon">Soon</span></span>
     </c:if>
   </nav>

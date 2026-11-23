@@ -2,6 +2,7 @@ package mindmerge.servlet;
 
 import mindmerge.dao.DashboardDao;
 import mindmerge.dao.DecisionDao;
+import mindmerge.dao.TagDao;
 import mindmerge.dao.UserDao;
 import mindmerge.model.Decision;
 import mindmerge.model.DecisionOption;
@@ -33,6 +34,7 @@ public class DecisionCreateServlet extends HttpServlet {
     private final DecisionDao decisionDao = new DecisionDao();
     private final UserDao userDao = new UserDao();
     private final DashboardDao dashboardDao = new DashboardDao();
+    private final TagDao tagDao = new TagDao();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -60,6 +62,8 @@ public class DecisionCreateServlet extends HttpServlet {
         int selected = Auth.intParam(request, "selected");  // 1-based position of the selected option
         String rationale = Auth.trim(request.getParameter("rationale"));
         int supersedesId = Auth.intParam(request,"supersedesId");
+        List<Integer> tagIds = readTagIds(request);
+        request.setAttribute("selectedTags", tagIds);
         
         // Refill the form after an error.
         request.setAttribute("projectId", projectId);
@@ -100,6 +104,7 @@ public class DecisionCreateServlet extends HttpServlet {
                         decisionDao.createOption(conn, decisionId, i + 1, o.getLabel(), o.getDescription(),
                                                  i + 1 == selected);
                     }
+                    decisionDao.setTags(conn, decisionId, tagIds);
                     if(supersedesId != -1) {
                         decisionDao.linkSupersedes(conn, supersedesId, decisionId);
                     }
@@ -163,6 +168,10 @@ public class DecisionCreateServlet extends HttpServlet {
     private void showForm(HttpServletRequest request, HttpServletResponse response, User user, String error)
             throws ServletException, IOException {
 
+        if (request.getAttribute("selectedTags") == null) {
+            request.setAttribute("selectedTags", new ArrayList<Integer>());
+        }
+
         request.setAttribute("activeNav", "create-decision");
         request.setAttribute("error", error);
         if (request.getAttribute("options") == null) {
@@ -173,6 +182,8 @@ public class DecisionCreateServlet extends HttpServlet {
         try {
             request.setAttribute("viewer", userDao.findViewer(user.getUserId()));
             request.setAttribute("projects", dashboardDao.findProjects(user.getUserId()));
+            // Tags of every company the viewer can propose in; js/decision-options.js shows the chosen project's.
+            request.setAttribute("tagChoices", tagDao.findForMember(user.getUserId()));
         } catch (SQLException e) {
             getServletContext().log("Could not load the create decision page", e);
             request.setAttribute("error", "This page could not be loaded. Verify that the database is running.");
@@ -186,6 +197,7 @@ public class DecisionCreateServlet extends HttpServlet {
                 if (oldDecision != null && "decided".equals(oldDecision.getStatus())) {
                     request.setAttribute("supersededDecision", oldDecision);
                     request.setAttribute("supersedesId", supersedesId);
+                    request.setAttribute("tagChoices", tagDao.findForDecisionCompany(supersedesId));
                 } else {
                     request.setAttribute( "error", "The decision could not be found.");
                 }
@@ -196,6 +208,21 @@ public class DecisionCreateServlet extends HttpServlet {
         }
 
         request.getRequestDispatcher("/WEB-INF/decision-create.jsp").forward(request, response);
+    }
+
+    /** The tag ids ticked in the form; anything that is not a number is ignored. */
+    static List<Integer> readTagIds(HttpServletRequest request) {
+        List<Integer> ids = new ArrayList<>();
+        String[] values = request.getParameterValues("tag");
+        if (values == null) return ids;
+        for (String v : values) {
+            try {
+                ids.add(Integer.parseInt(v.trim()));
+            } catch (NumberFormatException e) {
+                // Ignore it; DecisionDao.setTags also saves only the project company's tags.
+            }
+        }
+        return ids;
     }
 
     /** Pairs each option name with its description, in the order they were sent. */
