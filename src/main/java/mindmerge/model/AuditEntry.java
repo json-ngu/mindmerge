@@ -75,6 +75,7 @@ public class AuditEntry {
             case "request_changes": return "Requested changes on";
             case "status_change":   return "Changed the status of";
             case "archive":         return "Archived";
+            case "supersede":       return "Superseded";
             default:                return operation.replace('_', ' ');
         }
     }

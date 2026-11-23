@@ -41,6 +41,8 @@
         <h2 id="passwordHeading">Change password</h2>
         <form class="form" method="post" action="${pageContext.request.contextPath}/settings">
           <input type="hidden" name="action" value="updatePassword">
+          <%-- Lets password managers match the new password to this account; the server ignores it. --%>
+          <input type="text" name="username" autocomplete="username" value="<c:out value='${sessionScope.user.email}'/>" hidden readonly>
           <label for="currentPassword">Current password</label>
           <input id="currentPassword" name="currentPassword" type="password" required autocomplete="current-password" maxlength="${passwordLimit}">
           <label for="newPassword">New password</label>

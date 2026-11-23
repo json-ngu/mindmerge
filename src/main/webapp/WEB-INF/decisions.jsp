@@ -71,7 +71,7 @@
           <c:forEach var="tagName" items="${tagNames}">
             <span class="filter-chip">
               <c:out value="${tagName}"/>
-              <input type="hidden" name="tag" value="${tagName}">
+              <input type="hidden" name="tag" value="${fn:escapeXml(tagName)}">
               <button type="button" onclick="this.parentElement.remove()">×</button>
             </span>
           </c:forEach>
@@ -86,7 +86,7 @@
           <c:forEach var="authorName" items="${authorNames}">
             <span class="filter-chip">
               <c:out value="${authorName}"/>
-              <input type="hidden" name="author" value="${authorName}">
+              <input type="hidden" name="author" value="${fn:escapeXml(authorName)}">
               <button type="button" onclick="this.parentElement.remove()">×</button>
             </span>
           </c:forEach>
@@ -108,7 +108,7 @@
           <c:forEach var="statusValue" items="${statuses}">
             <span class="filter-chip">
               <c:out value="${statusValue}"/>
-              <input type="hidden" name="status" value="${statusValue}">
+              <input type="hidden" name="status" value="${fn:escapeXml(statusValue)}">
               <button type="button" onclick="this.parentElement.remove()">×</button>
             </span>
           </c:forEach>

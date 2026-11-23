@@ -36,6 +36,14 @@ public class ApprovalDao {
         "UPDATE decision SET status = 'rejected' WHERE decision_id = ?";
 
     // On approval, the decisions this one supersedes stop being current.
+    // Logged before SUPERSEDE_REPLACED runs, while the old decisions are still 'decided'.
+    private static final String LOG_SUPERSEDED =
+        "INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id, detail) " +
+        "SELECT ?, ?, 'supersede', 'decision', old.decision_id, CONCAT('Replaced by ', LEFT(nw.title, 230)) " +
+        "FROM decision_link l JOIN decision old ON old.decision_id = l.related_decision_id " +
+        "JOIN decision nw ON nw.decision_id = l.decision_id " +
+        "WHERE l.decision_id = ? AND l.link_type = 'supersedes' AND old.status = 'decided'";
+
     private static final String SUPERSEDE_REPLACED =
         "UPDATE decision old JOIN decision_link l ON l.related_decision_id = old.decision_id " +
         "SET old.status = 'superseded' " +
@@ -113,6 +121,12 @@ public class ApprovalDao {
                         ps.executeUpdate();
                     }
                     if ("approve".equals(action)) {
+                        try (PreparedStatement ps = conn.prepareStatement(LOG_SUPERSEDED)) {
+                            ps.setInt(1, userId);
+                            ps.setInt(2, companyId);
+                            ps.setInt(3, decisionId);
+                            ps.executeUpdate();
+                        }
                         try (PreparedStatement ps = conn.prepareStatement(SUPERSEDE_REPLACED)) {
                             ps.setInt(1, decisionId);
                             ps.executeUpdate();

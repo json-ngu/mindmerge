@@ -56,7 +56,7 @@
     <c:if test="${empty error}">
       <%-- Pending invitations: the invited person accepts or declines here. --%>
       <c:forEach var="inv" items="${invites}">
-        <section class="invite-banner" aria-label="Invitation from ${inv.companyName}">
+        <section class="invite-banner" aria-label="Invitation from ${fn:escapeXml(inv.companyName)}">
           <p>
             <strong><c:out value="${inv.invitedByName}"/></strong> invited you to join
             <strong><c:out value="${inv.companyName}"/></strong> as
