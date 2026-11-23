@@ -1,5 +1,4 @@
 # MindMerge
-### Written by Jason Nguyen (Updated as of October 20, 2026)
 
 **What is MindMerge?**
 
@@ -18,9 +17,13 @@ This document covers how to set the project up and run it on macOS or Windows. T
 - **Accounts**: sign up with full name, email and password; log in and out. Passwords are
   stored as salted PBKDF2-SHA256 hashes, and sessions expire after 30 minutes idle.
 - **Dashboard**: decisions from your teams' projects with status, chosen option, author and
-  color-coded tags; a "Needs your review" list for leads and approvers; your projects; a
-  Team / Mine toggle; and search that updates as you type.
-- **Companies**: create a company (you become its owner) and switch invites on or off in Settings.
+  color-coded tags; an "Awaiting your approval" list for leads and approvers; "Your decisions
+  in review"; your projects; an All decisions / My decisions toggle; and search that updates
+  as you type.
+- **Decisions**: browse every decision you can see, filtered by project, status, tag and
+  author, a page at a time.
+- **Companies**: create a company; you become its owner.
+- **Settings**: change your full name and password, and turn company invitations on or off.
 - **People** (owners and admins): invite existing users by email, change roles, and remove
   members. Invites appear on the invited person's dashboard to join or decline.
 - **Teams** (owners and admins): create teams and add members as lead, approver or member.
@@ -32,12 +35,12 @@ This document covers how to set the project up and run it on macOS or Windows. T
   description; each project page lists its decisions.
 - **Create decision and approvals**: record a decision with its options, the option you
   recommend and your rationale; a team lead or approver can approve it, request changes, or reject it.
+  The author can edit a proposal until it is reviewed.
+- **Supersede**: replace a decided decision with a new one; the old decision becomes
+  superseded once the replacement is approved.
 - **Decision details and comments**: select a decision on the dashboard or a project page to
   see its context, options, rationale and newest-first discussion. Current team members, and
   the company's owners and administrators, can add permanent comments up to 2,000 characters.
-  See [the comments guide](docs/comments.md) for code explanations, focused checks and manual
-  testing steps.
-
 - **Audit log** (owners and admins): every change in a company (decisions, comments, projects,
   tags, teams, members and invitations), newest first, filtered by person, type and date.
 - **Renaming**: team leads and company owners/admins rename projects; owners/admins rename teams.
@@ -53,7 +56,9 @@ After loading `sql/schema.sql` (Setup step 2), these accounts can log in:
 | Hailey Liu | hailey.liu01@sjsu.edu | `haileyliu` |
 
 All three belong to the MindMerge company. Hailey is its owner and Jason is an admin, so both
-see the Admin section (People, Teams); Andrew is a member. These are demo passwords for local
+see the Admin section (People, Teams, Tags, Audit log); Andrew is a member. On the Platform
+Engineering team, Hailey is the lead, Jason an approver and Andrew a member, so Jason or Hailey
+can approve a decision Andrew proposes. These are demo passwords for local
 use only. The other seeded users have placeholder passwords and can't log in.
 
 ## Architecture
@@ -72,8 +77,8 @@ browser → /dashboard → DashboardServlet → DashboardDao → JDBC → MySQL
                     WEB-INF/dashboard.jsp → HTML → browser
 ```
 
-The landing page (`/home`) needs no database. Signed-in pages (`/dashboard`, `/people`,
-`/teams`, `/settings`) redirect to `/login` when there is no session.
+The landing page (`/home`) needs no database. Every signed-in page redirects to `/login`
+when there is no session.
 
 ## Requirements
 
@@ -113,7 +118,7 @@ for example `~/tools/apache-tomcat-9.0.122` or `C:\apache-tomcat-9.0.122`.
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/json-ngu/CS157A-4.git mindmerge
+git clone https://github.com/json-ngu/mindmerge.git mindmerge
 cd mindmerge
 ```
 
@@ -157,9 +162,9 @@ and expand `mindmerge_db` → Tables.
 
 ### 3. Add your database credentials
 
-The repository contains `db.properties.example` but not `db.properties`, the real
-file holds a password and is excluded from version control, so each
-person needs to create their own.
+The repository contains `db.properties.example` but not `db.properties`, because the
+real file holds a password and is excluded from version control. Each person creates
+their own.
 
 **macOS / Linux**
 
@@ -199,6 +204,25 @@ mvn clean package
 The first run downloads dependencies and takes about a minute. Look for
 `BUILD SUCCESS` and a new file at `target/mindmerge.war`.
 
+**Optional checks.** `CommentChecks` and `SettingsChecks` in `src/test/java/mindmerge/` are
+small programs, not JUnit tests, so Maven compiles them but does not run them. After
+`mvn clean package`, run them from the project root. `--database` also checks comment access
+rules against your MySQL data; it never adds a comment.
+
+macOS / Linux:
+```bash
+CP="target/test-classes:target/classes:$HOME/.m2/repository/javax/servlet/javax.servlet-api/4.0.1/javax.servlet-api-4.0.1.jar:$(ls target/mindmerge/WEB-INF/lib/*.jar | tr '\n' ':')"
+java -cp "$CP" mindmerge.CommentChecks --database
+java -cp "$CP" mindmerge.SettingsChecks
+```
+
+Windows (PowerShell; `;` separates classpath entries):
+```powershell
+$cp = 'target/test-classes;target/classes;' + "$HOME\.m2\repository\javax\servlet\javax.servlet-api\4.0.1\javax.servlet-api-4.0.1.jar;" + ((Get-ChildItem target/mindmerge/WEB-INF/lib/*.jar).FullName -join ';')
+java -cp $cp mindmerge.CommentChecks --database
+java -cp $cp mindmerge.SettingsChecks
+```
+
 ### 5. Deploy and start Tomcat
 
 **macOS / Linux**
@@ -207,6 +231,9 @@ The first run downloads dependencies and takes about a minute. Look for
 cp target/mindmerge.war TOMCAT_HOME/webapps/
 TOMCAT_HOME/bin/startup.sh
 ```
+
+If `bin/startup.sh` is missing (some Tomcat 9 downloads leave it out), start Tomcat with
+`sh TOMCAT_HOME/bin/catalina.sh start` instead.
 
 If you get "permission denied," make the scripts executable once:
 
@@ -272,7 +299,8 @@ You're running Tomcat 10 or later. Install Tomcat 9.
 `JAVA_HOME` isn't set. See the Windows setup notes above.
 
 **`Address already in use` when starting Tomcat**
-Another process holds port 8080.
+Tomcat may already be running: stop it first with `shutdown.sh` (or `shutdown.bat`). Otherwise
+another process holds port 8080.
 
 - macOS / Linux: `lsof -i :8080`
 - Windows: `netstat -ano | findstr :8080`, then look up the PID in Task Manager
@@ -293,20 +321,21 @@ mindmerge/
 ├── pom.xml                        Maven build configuration
 ├── db.properties.example          Template for local database credentials
 ├── sql/schema.sql                 All tables, seed data and demo logins
-├── docs/comments.md               How the comments feature works and how to check it
 └── src/
-    ├── test/java/mindmerge/       CommentChecks (run by hand; see docs/comments.md)
+    ├── test/java/mindmerge/       CommentChecks, SettingsChecks (run by hand; see Build)
     └── main/
         ├── java/mindmerge/
         │   ├── util/              DbUtil (JDBC connections), PasswordUtil (hashing),
         │   │                      Auth (session helpers), Limits (input limits), Zones (time zones)
         │   ├── model/             Decision, DecisionOption, Comment, Project, Tag, User, Viewer,
-        │   │                      Company, Member, Invite, Team
+        │   │                      Company, Member, Invite, Team, AuditEntry
         │   ├── dao/               SQL: DashboardDao, DecisionDao, ApprovalDao, CommentDao,
-        │   │                      ProjectDao, UserDao, CompanyDao, InviteDao, TeamDao
+        │   │                      ProjectDao, UserDao, CompanyDao, InviteDao, TeamDao,
+        │   │                      TagDao, AuditDao
         │   └── servlet/           Request handlers: Home, Legal, Login, Register, Logout,
-        │                          Dashboard, DecisionCreate, DecisionDetail, Approval, Project,
-        │                          Company, People, Teams, Settings, Invite
+        │                          Dashboard, DecisionList, DecisionCreate, DecisionDetail,
+        │                          DecisionEdit, Approval, Project, Company, People, Teams,
+        │                          Tag, Audit, Settings, Invite
         ├── resources/             db.properties goes here (you create it)
         └── webapp/
             ├── index.jsp          Entry point, redirects to /home
@@ -315,12 +344,14 @@ mindmerge/
             ├── js/                Landing animation, scroll effects, live search,
             │                      password reveal, small form helpers
             ├── img/logo.svg       Logo and favicon
+            ├── META-INF/context.xml  Session cookie setting (SameSite=Lax)
             └── WEB-INF/
                 ├── web.xml        Deployment descriptor (session timeout, error pages)
                 ├── home.jsp       Landing page; privacy.jsp, terms.jsp, error.jsp
-                ├── dashboard.jsp, decision-create.jsp, decision-details.jsp,
-                │   approvals.jsp, approval.jsp, projects.jsp, project.jsp,
-                │   people.jsp, teams.jsp, settings.jsp, company-new.jsp
+                ├── dashboard.jsp, decisions.jsp, decision-create.jsp,
+                │   decision-details.jsp, approvals.jsp, approval.jsp, projects.jsp,
+                │   project.jsp, people.jsp, teams.jsp, tags.jsp, audit.jsp,
+                │   settings.jsp, company-new.jsp
                 └── jspf/          Shared fragments: head, sidebar, top bar, logo, notices,
                                    decision list item, comments
 ```

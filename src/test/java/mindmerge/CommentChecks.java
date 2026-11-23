@@ -11,7 +11,7 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
-// Dependency-free checks. See docs/comments.md for commands; database checks never add a comment
+// Dependency-free checks. See "Optional checks" in README.md for commands; database checks never add a comment
 public final class CommentChecks {
     public static void main(String[] args) throws Exception {
         for (String blank : new String[] {null, "", " \t\r\n", "\u2003\u00a0"}) {
