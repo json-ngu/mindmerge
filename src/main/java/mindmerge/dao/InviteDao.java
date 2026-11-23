@@ -51,6 +51,9 @@ public class InviteDao {
     private static final String FIND_PENDING_ROLE =
         "SELECT company_role FROM company_invite WHERE invite_id = ? AND company_id = ? AND status = 'pending'";
 
+    private static final String LOCK_PENDING_FOR_COMPANY =
+        "SELECT user_id FROM company_invite WHERE invite_id = ? AND company_id = ? AND status = 'pending' FOR UPDATE";
+
     private static final String CANCEL =
         "UPDATE company_invite SET status = 'cancelled', responded_at = NOW() " +
         "WHERE invite_id = ? AND company_id = ? AND status = 'pending'";
@@ -72,14 +75,22 @@ public class InviteDao {
             if (exists(conn, IS_MEMBER, companyId, userId) || exists(conn, HAS_PENDING, companyId, userId)) {
                 return false;
             }
-            try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
-                ps.setInt(1, companyId);
-                ps.setInt(2, userId);
-                ps.setString(3, role);
-                ps.setInt(4, invitedBy);
-                ps.executeUpdate();
+            conn.setAutoCommit(false);  // the invitation and its log row are saved together
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                    ps.setInt(1, companyId);
+                    ps.setInt(2, userId);
+                    ps.setString(3, role);
+                    ps.setInt(4, invitedBy);
+                    ps.executeUpdate();
+                }
+                AuditDao.log(conn, invitedBy, companyId, "invite", "employee", userId, AuditDao.asRole(role));
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-            return true;
         }
     }
 
@@ -126,6 +137,8 @@ public class InviteDao {
                     ps.setInt(2, inviteId);
                     ps.executeUpdate();
                 }
+                AuditDao.log(conn, userId, companyId, accept ? "join" : "decline_invite", "employee", userId,
+                        accept ? AuditDao.asRole(role) : null);
                 conn.commit();
                 return true;
             } catch (SQLException e) {
@@ -149,14 +162,25 @@ public class InviteDao {
     }
 
     /** Cancels a pending invite that belongs to this company. */
-    public void cancel(int inviteId, int companyId) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(CANCEL)) {
-
-            ps.setInt(1, inviteId);
-            ps.setInt(2, companyId);
-            ps.executeUpdate();
-        }
+    public void cancel(int inviteId, int companyId, int actorId) throws SQLException {
+        DbUtil.<Void>inTransaction(conn -> {
+            int invitee;
+            try (PreparedStatement ps = conn.prepareStatement(LOCK_PENDING_FOR_COMPANY)) {
+                ps.setInt(1, inviteId);
+                ps.setInt(2, companyId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return null;  // no longer pending
+                    invitee = rs.getInt(1);
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(CANCEL)) {
+                ps.setInt(1, inviteId);
+                ps.setInt(2, companyId);
+                ps.executeUpdate();
+            }
+            AuditDao.log(conn, actorId, companyId, "cancel_invite", "employee", invitee, null);
+            return null;
+        });
     }
 
     private boolean exists(Connection conn, String sql, int companyId, int userId) throws SQLException {

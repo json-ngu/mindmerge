@@ -82,7 +82,7 @@ public class TeamsServlet extends HttpServlet {
                 if (name.isEmpty() || name.length() > Limits.TEAM_NAME) {
                     Auth.flash(request, "Team name must be 1 to " + Limits.TEAM_NAME + " characters.", true);
                 } else {
-                    teamDao.create(companyId, name);
+                    teamDao.create(companyId, name, user.getUserId());
                     Auth.flash(request, "Team “" + name + "” created.", false);
                 }
                 response.sendRedirect(back);
@@ -95,25 +95,34 @@ public class TeamsServlet extends HttpServlet {
             String role = request.getParameter("role");
             if (teamDao.findCompanyId(teamId) != companyId) {
                 Auth.flash(request, "This team does not belong to the company.", true);
+            } else if ("rename".equals(action)) {
+                String name = Auth.trim(request.getParameter("name"));
+                if (name.isEmpty() || name.length() > Limits.TEAM_NAME) {
+                    Auth.flash(request, "Team name must be 1 to " + Limits.TEAM_NAME + " characters.", true);
+                } else if (teamDao.rename(teamId, companyId, name, user.getUserId())) {
+                    Auth.flash(request, "Team renamed to “" + name + "”.", false);
+                } else {
+                    Auth.flash(request, "This team does not belong to the company.", true);
+                }
             } else if ("add".equals(action)) {
                 if (companyDao.findRole(companyId, target) == null) {
                     Auth.flash(request, "Only members of this company can join its teams.", true);
                 } else if (!isTeamRole(role)) {
                     Auth.flash(request, "Select a team role.", true);
                 } else {
-                    teamDao.addMember(teamId, target, role);
+                    teamDao.addMember(teamId, target, role, user.getUserId(), companyId);
                     Auth.flash(request, "Member added to the team.", false);
                 }
             } else if ("role".equals(action)) {
                 if (!isTeamRole(role)) {
                     Auth.flash(request, "Select a team role.", true);
-                } else if (teamDao.changeRole(teamId, target, role)) {
+                } else if (teamDao.changeRole(teamId, target, role, user.getUserId(), companyId)) {
                     Auth.flash(request, "Team role updated.", false);
                 } else {
                     Auth.flash(request, NOT_ON_TEAM, true);
                 }
             } else if ("remove".equals(action)) {
-                if (teamDao.removeMember(teamId, target)) {
+                if (teamDao.removeMember(teamId, target, user.getUserId(), companyId)) {
                     Auth.flash(request, "Member removed from the team. Their decisions and comments have been retained.", false);
                 } else {
                     Auth.flash(request, NOT_ON_TEAM, true);

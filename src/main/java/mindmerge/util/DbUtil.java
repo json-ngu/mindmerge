@@ -36,5 +36,28 @@ public class DbUtil {
             CONFIG.getProperty("db.password"));
     }
 
+    /** Work done on one connection inside a transaction. */
+    public interface Work<T> {
+        T run(Connection conn) throws SQLException;
+    }
+
+    /**
+     * Runs the work in one transaction: commits when it returns, rolls back and rethrows when it
+     * fails. Work that decides to change nothing should check before writing.
+     */
+    public static <T> T inTransaction(Work<T> work) throws SQLException {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                T result = work.run(conn);
+                conn.commit();
+                return result;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+    }
+
     private DbUtil() { }
 }

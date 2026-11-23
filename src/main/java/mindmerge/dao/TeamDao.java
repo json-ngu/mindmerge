@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ArrayList;
@@ -37,6 +38,13 @@ public class TeamDao {
 
     private static final String CHANGE_ROLE =
         "UPDATE team_member SET team_role = ? WHERE team_id = ? AND user_id = ? AND left_at IS NULL";
+
+    private static final String FIND_TEAM_ROLE =
+        "SELECT team_role FROM team_member WHERE team_id = ? AND user_id = ? AND left_at IS NULL FOR UPDATE";
+
+    private static final String FIND_NAME = "SELECT name FROM team WHERE team_id = ? AND company_id = ? FOR UPDATE";
+
+    private static final String RENAME = "UPDATE team SET name = ? WHERE team_id = ?";
 
     private static final String CLOSE_MEMBERSHIP =
         "UPDATE team_member SET left_at = NOW() WHERE team_id = ? AND user_id = ? AND left_at IS NULL";
@@ -70,14 +78,20 @@ public class TeamDao {
         return new ArrayList<>(teams.values());
     }
 
-    public void create(int companyId, String name) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_TEAM)) {
-
-            ps.setInt(1, companyId);
-            ps.setString(2, name);
-            ps.executeUpdate();
-        }
+    /** Creates a team in the company and logs it. */
+    public void create(int companyId, String name, int actorId) throws SQLException {
+        DbUtil.<Void>inTransaction(conn -> {
+            try (PreparedStatement ps = conn.prepareStatement(INSERT_TEAM, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, companyId);
+                ps.setString(2, name);
+                ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next()) throw new SQLException("Could not get the new team ID.");
+                    AuditDao.log(conn, actorId, companyId, "create", "team", keys.getInt(1), null);
+                }
+            }
+            return null;
+        });
     }
 
     /** The company a team belongs to, or -1 when the team doesn't exist. */
@@ -92,37 +106,77 @@ public class TeamDao {
         }
     }
 
-    public void addMember(int teamId, int userId, String role) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(OPEN_MEMBERSHIP)) {
-
-            ps.setInt(1, userId);
-            ps.setInt(2, teamId);
-            ps.setString(3, role);
-            ps.executeUpdate();
-        }
+    /** Adds a member (or re-adds one who left) and logs "Name as role". */
+    public void addMember(int teamId, int userId, String role, int actorId, int companyId) throws SQLException {
+        DbUtil.<Void>inTransaction(conn -> {
+            try (PreparedStatement ps = conn.prepareStatement(OPEN_MEMBERSHIP)) {
+                ps.setInt(1, userId);
+                ps.setInt(2, teamId);
+                ps.setString(3, role);
+                ps.executeUpdate();
+            }
+            AuditDao.log(conn, actorId, companyId, "add_member", "team", teamId,
+                    AuditDao.fullName(conn, userId) + " as " + role);
+            return null;
+        });
     }
 
     // Both return false when the person is not a current member of the team, so nothing changed.
     // (Connector/J counts matched rows, so setting the same role again still returns true.)
-    public boolean changeRole(int teamId, int userId, String role) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(CHANGE_ROLE)) {
-
-            ps.setString(1, role);
-            ps.setInt(2, teamId);
-            ps.setInt(3, userId);
-            return ps.executeUpdate() > 0;
-        }
+    public boolean changeRole(int teamId, int userId, String role, int actorId, int companyId) throws SQLException {
+        return DbUtil.inTransaction(conn -> {
+            String oldRole;
+            try (PreparedStatement ps = conn.prepareStatement(FIND_TEAM_ROLE)) {
+                ps.setInt(1, teamId);
+                ps.setInt(2, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return false;
+                    oldRole = rs.getString(1);
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(CHANGE_ROLE)) {
+                ps.setString(1, role);
+                ps.setInt(2, teamId);
+                ps.setInt(3, userId);
+                ps.executeUpdate();
+            }
+            AuditDao.log(conn, actorId, companyId, "change_role", "team", teamId,
+                    AuditDao.fullName(conn, userId) + ": " + oldRole + " → " + role);
+            return true;
+        });
     }
 
-    public boolean removeMember(int teamId, int userId) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(CLOSE_MEMBERSHIP)) {
+    public boolean removeMember(int teamId, int userId, int actorId, int companyId) throws SQLException {
+        return DbUtil.inTransaction(conn -> {
+            try (PreparedStatement ps = conn.prepareStatement(CLOSE_MEMBERSHIP)) {
+                ps.setInt(1, teamId);
+                ps.setInt(2, userId);
+                if (ps.executeUpdate() == 0) return false;
+            }
+            AuditDao.log(conn, actorId, companyId, "remove_member", "team", teamId, AuditDao.fullName(conn, userId));
+            return true;
+        });
+    }
 
-            ps.setInt(1, teamId);
-            ps.setInt(2, userId);
-            return ps.executeUpdate() > 0;
-        }
+    /** Renames a team of this company and logs the old name. False when the team is not in the company. */
+    public boolean rename(int teamId, int companyId, String name, int actorId) throws SQLException {
+        return DbUtil.inTransaction(conn -> {
+            String oldName;
+            try (PreparedStatement ps = conn.prepareStatement(FIND_NAME)) {
+                ps.setInt(1, teamId);
+                ps.setInt(2, companyId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return false;
+                    oldName = rs.getString(1);
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(RENAME)) {
+                ps.setString(1, name);
+                ps.setInt(2, teamId);
+                ps.executeUpdate();
+            }
+            AuditDao.log(conn, actorId, companyId, "rename", "team", teamId, "Renamed from " + oldName);
+            return true;
+        });
     }
 }

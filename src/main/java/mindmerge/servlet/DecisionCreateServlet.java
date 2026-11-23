@@ -1,5 +1,6 @@
 package mindmerge.servlet;
 
+import mindmerge.dao.AuditDao;
 import mindmerge.dao.DashboardDao;
 import mindmerge.dao.DecisionDao;
 import mindmerge.dao.TagDao;
@@ -87,12 +88,14 @@ public class DecisionCreateServlet extends HttpServlet {
             }
             // The id comes from a hidden field, so check it: only a decided decision the viewer can see,
             // in the same project, may be superseded.
+            String supersedesTitle = null;
             if (supersedesId != -1) {
                 Decision old = dashboardDao.findVisible(user.getUserId(), supersedesId);
                 if (old == null || !"decided".equals(old.getStatus()) || old.getProjectId() != projectId) {
                     showForm(request, response, user, "Only a decided decision in the same project can be superseded.");
                     return;
                 }
+                supersedesTitle = old.getTitle();
             }
 
             try (Connection conn = DbUtil.getConnection()) {
@@ -108,6 +111,8 @@ public class DecisionCreateServlet extends HttpServlet {
                     if(supersedesId != -1) {
                         decisionDao.linkSupersedes(conn, supersedesId, decisionId);
                     }
+                    AuditDao.logForDecision(conn, user.getUserId(), decisionId, "create", "decision", decisionId,
+                            supersedesTitle == null ? null : "Would supersede " + supersedesTitle);
                     conn.commit();
                 } catch (SQLException e) {
                     conn.rollback();

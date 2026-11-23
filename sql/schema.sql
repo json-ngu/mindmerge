@@ -143,6 +143,7 @@ CREATE TABLE audit_log (
   operation     VARCHAR(40)   NOT NULL,
   entity_type   VARCHAR(80)   NOT NULL,
   entity_id     INT           NOT NULL,
+  detail        VARCHAR(255),  -- specifics, such as "Andrew Khoi Luu: member → approver"
   created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id)    REFERENCES `user` (user_id),
   FOREIGN KEY (company_id) REFERENCES company (company_id)
@@ -196,7 +197,7 @@ INSERT INTO employee (user_id, company_id, company_role, joined_at) VALUES
   (10, 5,  'owner',  '2026-02-23 11:05:00'),
   (11, 6,  'owner',  '2026-03-04 09:25:00'),
   (12, 6,  'admin',  '2026-03-09 15:45:00'),
-  (12, 7,  'member', '2026-03-23 11:30:00'),
+  (12, 7,  'owner',  '2026-03-23 11:30:00'),
   (13, 7,  'owner',  '2026-03-16 13:45:00'),
   (12, 8,  'member', '2026-04-02 14:00:00'),
   (14, 8,  'owner',  '2026-03-30 15:10:00'),

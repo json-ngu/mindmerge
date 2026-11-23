@@ -30,7 +30,8 @@
          href="${pageContext.request.contextPath}/teams">Teams</a>
       <a class="${activeNav eq 'tags' ? 'is-active' : ''}" ${activeNav eq 'tags' ? 'aria-current="page"' : ''}
          href="${pageContext.request.contextPath}/tags">Tags</a>
-      <span class="nav-soon" aria-disabled="true">Audit log <span class="soon">Soon</span></span>
+      <a class="${activeNav eq 'audit' ? 'is-active' : ''}" ${activeNav eq 'audit' ? 'aria-current="page"' : ''}
+         href="${pageContext.request.contextPath}/audit">Audit log</a>
     </c:if>
   </nav>
   <div class="account">

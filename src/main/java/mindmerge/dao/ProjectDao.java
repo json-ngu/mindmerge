@@ -72,12 +72,14 @@ public class ProjectDao {
         "INSERT INTO project (team_id, name, description) VALUES (?, ?, ?)";
 
     private static final String UPDATE_PROJECT =
-        "UPDATE project SET status = ?, description = ? WHERE project_id = ?";
+        "UPDATE project SET name = ?, status = ?, description = ? WHERE project_id = ?";
+
+    private static final String FIND_NAME = "SELECT name FROM project WHERE project_id = ? FOR UPDATE";
 
     // The company comes from the project's team, so the log row can't name the wrong company.
     private static final String LOG =
-        "INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id) " +
-        "SELECT ?, t.company_id, ?, 'project', p.project_id FROM project p " +
+        "INSERT INTO audit_log (user_id, company_id, operation, entity_type, entity_id, detail) " +
+        "SELECT ?, t.company_id, ?, 'project', p.project_id, ? FROM project p " +
         "JOIN team t ON t.team_id = p.team_id WHERE p.project_id = ?";
 
     /** Every project the viewer can see, active ones first, then by name. */
@@ -152,7 +154,7 @@ public class ProjectDao {
                         projectId = keys.getInt(1);
                     }
                 }
-                log(conn, userId, "create", projectId);
+                log(conn, userId, "create", projectId, null);
                 conn.commit();
                 return projectId;
             } catch (SQLException e) {
@@ -162,18 +164,27 @@ public class ProjectDao {
         }
     }
 
-    /** Changes the project's status and description, and logs it. */
-    public void update(int projectId, String status, String description, int userId) throws SQLException {
+    /** Changes the project's name, status and description, and logs it (with the old name if renamed). */
+    public void update(int projectId, String name, String status, String description, int userId) throws SQLException {
         try (Connection conn = DbUtil.getConnection()) {
             conn.setAutoCommit(false);
             try {
+                String oldName = null;
+                try (PreparedStatement ps = conn.prepareStatement(FIND_NAME)) {
+                    ps.setInt(1, projectId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) oldName = rs.getString(1);
+                    }
+                }
                 try (PreparedStatement ps = conn.prepareStatement(UPDATE_PROJECT)) {
-                    ps.setString(1, status);
-                    setText(ps, 2, description);
-                    ps.setInt(3, projectId);
+                    ps.setString(1, name);
+                    ps.setString(2, status);
+                    setText(ps, 3, description);
+                    ps.setInt(4, projectId);
                     ps.executeUpdate();
                 }
-                log(conn, userId, "update", projectId);
+                log(conn, userId, "update", projectId,
+                        oldName != null && !oldName.equals(name) ? "Renamed from " + oldName : null);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -182,11 +193,12 @@ public class ProjectDao {
         }
     }
 
-    private void log(Connection conn, int userId, String operation, int projectId) throws SQLException {
+    private void log(Connection conn, int userId, String operation, int projectId, String detail) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(LOG)) {
             ps.setInt(1, userId);
             ps.setString(2, operation);
-            ps.setInt(3, projectId);
+            ps.setString(3, detail);
+            ps.setInt(4, projectId);
             ps.executeUpdate();
         }
     }

@@ -109,6 +109,15 @@
                     <button class="pill pill-ghost pill-sm" type="submit">Add</button>
                   </form>
                 </c:if>
+
+                <form class="inline-form team-rename" method="post" action="${pageContext.request.contextPath}/teams">
+                  <input type="hidden" name="company" value="${company.companyId}">
+                  <input type="hidden" name="team" value="${t.teamId}">
+                  <input type="hidden" name="action" value="rename">
+                  <label class="visually-hidden" for="rename${t.teamId}">New name for <c:out value="${t.name}"/></label>
+                  <input id="rename${t.teamId}" class="input" name="name" type="text" required maxlength="150" value="<c:out value='${t.name}'/>">
+                  <button class="pill pill-ghost pill-sm" type="submit">Rename</button>
+                </form>
               </section>
             </c:forEach>
           </div>

@@ -38,7 +38,9 @@ This document covers how to set the project up and run it on macOS or Windows. T
   See [the comments guide](docs/comments.md) for code explanations, focused checks and manual
   testing steps.
 
-**Coming next** (shown as "Soon" in the sidebar): the audit log.
+- **Audit log** (owners and admins): every change in a company (decisions, comments, projects,
+  tags, teams, members and invitations), newest first, filtered by person, type and date.
+- **Renaming**: team leads and company owners/admins rename projects; owners/admins rename teams.
 
 ## Demo accounts
 

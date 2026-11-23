@@ -82,13 +82,13 @@ public class PeopleServlet extends HttpServlet {
                     invite(request, user, myRole, companyId);
                     break;
                 case "role":
-                    changeRole(request, myRole, companyId);
+                    changeRole(request, user, myRole, companyId);
                     break;
                 case "remove":
                     remove(request, user, myRole, companyId);
                     break;
                 case "cancel":
-                    cancel(request, myRole, companyId);
+                    cancel(request, user, myRole, companyId);
                     break;
                 default:
                     Auth.flash(request, "The requested action is not recognized.", true);
@@ -116,7 +116,7 @@ public class PeopleServlet extends HttpServlet {
     }
 
     // Admin invites are sent by owners, so only an owner can cancel one.
-    private void cancel(HttpServletRequest request, String myRole, int companyId) throws SQLException {
+    private void cancel(HttpServletRequest request, User user, String myRole, int companyId) throws SQLException {
         int inviteId = Auth.intParam(request, "invite");
         String role = inviteDao.findRole(inviteId, companyId);
 
@@ -125,7 +125,7 @@ public class PeopleServlet extends HttpServlet {
         } else if ("admin".equals(role) && !"owner".equals(myRole)) {
             Auth.flash(request, "Only an owner can cancel an administrator invitation.", true);
         } else {
-            inviteDao.cancel(inviteId, companyId);
+            inviteDao.cancel(inviteId, companyId, user.getUserId());
             Auth.flash(request, "Invitation cancelled.", false);
         }
     }
@@ -134,7 +134,7 @@ public class PeopleServlet extends HttpServlet {
      * Company roles are owner-only: admins can't promote anyone to admin, demote other admins,
      * or change their own role. (Admins still set team roles on the Teams page.)
      */
-    private void changeRole(HttpServletRequest request, String myRole, int companyId) throws SQLException {
+    private void changeRole(HttpServletRequest request, User user, String myRole, int companyId) throws SQLException {
         int target = Auth.intParam(request, "user");
         String newRole = request.getParameter("role");
         String currentRole = companyDao.findRole(companyId, target);
@@ -150,7 +150,7 @@ public class PeopleServlet extends HttpServlet {
         } else if ("owner".equals(currentRole) && companyDao.countOwners(companyId) <= 1) {
             Auth.flash(request, "A company must have at least one owner. Assign another owner first.", true);
         } else {
-            companyDao.changeRole(companyId, target, newRole);
+            companyDao.changeRole(companyId, target, newRole, user.getUserId());
             Auth.flash(request, "Role updated.", false);
         }
     }
@@ -167,7 +167,7 @@ public class PeopleServlet extends HttpServlet {
         } else if ("owner".equals(targetRole) && companyDao.countOwners(companyId) <= 1) {
             Auth.flash(request, "A company must have at least one owner. Assign another owner first.", true);
         } else {
-            companyDao.removeMember(companyId, target);
+            companyDao.removeMember(companyId, target, user.getUserId());
             Auth.flash(request, target == user.getUserId()
                     ? "You have left the company. Your decisions and comments have been retained."
                     : "Member removed from the company. Their decisions and comments have been retained.", false);

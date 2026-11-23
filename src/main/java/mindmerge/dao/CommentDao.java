@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,20 +59,25 @@ public class CommentDao {
     public boolean create(int decisionId, int userId, String body) throws SQLException {
         String error = validationError(body);
         if (error != null) throw new IllegalArgumentException(error);
-        try (Connection conn = DbUtil.getConnection()) {
-            return create(conn, decisionId, userId, body);
-        }
+        return DbUtil.inTransaction(conn -> create(conn, decisionId, userId, body));
     }
 
+    /** The same, inside the caller's transaction; the comment and its audit row are saved together. */
     public boolean create(Connection conn, int decisionId, int userId, String body) throws SQLException {
         String error = validationError(body);
         if (error != null) throw new IllegalArgumentException(error);
-        try (PreparedStatement ps = conn.prepareStatement(CREATE)) {
+        try (PreparedStatement ps = conn.prepareStatement(CREATE, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, decisionId);
             ps.setInt(2, userId);
             ps.setString(3, body);
             bindCanView(ps, 4, decisionId, userId);
-            return ps.executeUpdate() == 1;
+            if (ps.executeUpdate() != 1) return false;
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    AuditDao.logForDecision(conn, userId, decisionId, "create", "comment", keys.getInt(1), null);
+                }
+            }
+            return true;
         }
     }
 

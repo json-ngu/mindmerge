@@ -76,6 +76,7 @@ public class CompanyDao {
                     ps.setString(3, "owner");
                     ps.executeUpdate();
                 }
+                AuditDao.log(conn, ownerId, companyId, "create", "company", companyId, null);
                 conn.commit();
                 return companyId;
             } catch (SQLException e) {
@@ -150,19 +151,32 @@ public class CompanyDao {
         }
     }
 
-    public void changeRole(int companyId, int userId, String role) throws SQLException {
-        try (Connection conn = DbUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(CHANGE_ROLE)) {
-
-            ps.setString(1, role);
-            ps.setInt(2, companyId);
-            ps.setInt(3, userId);
-            ps.executeUpdate();
-        }
+    /** Changes a member's company role and logs "old → new". */
+    public void changeRole(int companyId, int userId, String role, int actorId) throws SQLException {
+        DbUtil.<Void>inTransaction(conn -> {
+            String oldRole;
+            try (PreparedStatement ps = conn.prepareStatement(FIND_ROLE + " FOR UPDATE")) {
+                ps.setInt(1, companyId);
+                ps.setInt(2, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return null;  // no longer a member: nothing to change
+                    oldRole = rs.getString(1);
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(CHANGE_ROLE)) {
+                ps.setString(1, role);
+                ps.setInt(2, companyId);
+                ps.setInt(3, userId);
+                ps.executeUpdate();
+            }
+            // The sentence already names the person, so the detail is only the change.
+            AuditDao.log(conn, actorId, companyId, "change_role", "employee", userId, oldRole + " → " + role);
+            return null;
+        });
     }
 
     /** Closes the membership and the person's team memberships in this company. Nothing is deleted. */
-    public void removeMember(int companyId, int userId) throws SQLException {
+    public void removeMember(int companyId, int userId, int actorId) throws SQLException {
         try (Connection conn = DbUtil.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -176,6 +190,8 @@ public class CompanyDao {
                     ps.setInt(2, userId);
                     ps.executeUpdate();
                 }
+                // Removing yourself is leaving.
+                AuditDao.log(conn, actorId, companyId, actorId == userId ? "leave" : "remove", "employee", userId, null);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();

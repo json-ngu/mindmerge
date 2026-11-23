@@ -107,6 +107,7 @@ public class ProjectServlet extends HttpServlet {
 
         int projectId = Auth.intParam(request, "project");
         String status = request.getParameter("status");
+        String name = Auth.trim(request.getParameter("name"));
         String description = Auth.trim(request.getParameter("description"));
         String back = request.getContextPath() + "/projects?project=" + projectId;
 
@@ -119,12 +120,14 @@ public class ProjectServlet extends HttpServlet {
             }
             if (!project.isCanManage()) {
                 Auth.flash(request, "Only the team lead or a company owner or administrator can change this project.", true);
+            } else if (name.isEmpty() || name.length() > Limits.PROJECT_NAME) {
+                Auth.flash(request, "Project name must be 1 to " + Limits.PROJECT_NAME + " characters.", true);
             } else if (!STATUSES.contains(status)) {
                 Auth.flash(request, "Select a valid project status.", true);
             } else if (description.length() > Limits.TEXT) {
                 Auth.flash(request, DESCRIPTION_TOO_LONG, true);
             } else {
-                projectDao.update(projectId, status, description, user.getUserId());
+                projectDao.update(projectId, name, status, description, user.getUserId());
                 Auth.flash(request, "Project updated.", false);
             }
         } catch (SQLException e) {

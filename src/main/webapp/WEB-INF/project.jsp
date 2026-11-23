@@ -52,6 +52,9 @@
               <input type="hidden" name="action" value="update">
               <input type="hidden" name="project" value="${project.projectId}">
 
+              <label for="projectName">Name</label>
+              <input id="projectName" name="name" type="text" required maxlength="180" value="<c:out value='${project.name}'/>">
+
               <label for="status">Status</label>
               <select id="status" class="select" name="status">
                 <c:forEach var="s" items="${statuses}">
