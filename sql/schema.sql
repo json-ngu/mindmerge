@@ -109,7 +109,6 @@ CREATE TABLE decision_link (
   CHECK (decision_id <> related_decision_id)
 );
 
--- Each company has its own tag list; a name is unique within its company.
 CREATE TABLE tag (
   tag_id        INT           AUTO_INCREMENT PRIMARY KEY,
   company_id    INT           NOT NULL,
@@ -143,7 +142,7 @@ CREATE TABLE audit_log (
   operation     VARCHAR(40)   NOT NULL,
   entity_type   VARCHAR(80)   NOT NULL,
   entity_id     INT           NOT NULL,
-  detail        VARCHAR(255),  -- specifics, such as "Andrew Khoi Luu: member → approver"
+  detail        VARCHAR(255),
   created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id)    REFERENCES `user` (user_id),
   FOREIGN KEY (company_id) REFERENCES company (company_id)
@@ -203,6 +202,20 @@ INSERT INTO employee (user_id, company_id, company_role, joined_at) VALUES
   (14, 8,  'owner',  '2026-03-30 15:10:00'),
   (15, 9,  'owner',  '2026-04-07 10:15:00'),
   (16, 10, 'owner',  '2026-04-21 16:30:00');
+
+INSERT INTO company_invite (invite_id, company_id, user_id, company_role, invited_by, status, created_at, responded_at) VALUES
+  (1,  1,  1,  'admin',  3,  'accepted',  '2026-01-12 09:03:00', '2026-01-12 09:05:00'),
+  (2,  1,  2,  'member', 3,  'accepted',  '2026-01-12 09:30:00', '2026-01-12 09:40:00'),
+  (3,  1,  6,  'member', 1,  'accepted',  '2026-01-25 17:00:00', '2026-01-26 08:30:00'),
+  (4,  2,  5,  'member', 4,  'accepted',  '2026-01-20 09:00:00', '2026-01-20 14:50:00'),
+  (5,  2,  6,  'admin',  4,  'accepted',  '2026-02-03 16:00:00', '2026-02-04 09:10:00'),
+  (6,  4,  9,  'admin',  8,  'accepted',  '2026-02-15 10:00:00', '2026-02-16 13:05:00'),
+  (7,  6,  12, 'admin',  11, 'accepted',  '2026-03-08 12:00:00', '2026-03-09 15:45:00'),
+  (8,  3,  5,  'member', 7,  'declined',  '2026-03-10 10:00:00', '2026-03-11 09:15:00'),
+  (9,  5,  7,  'admin',  10, 'cancelled', '2026-04-14 13:30:00', '2026-04-16 10:00:00'),
+  (10, 9,  11, 'member', 15, 'declined',  '2026-05-04 11:00:00', '2026-05-05 08:20:00'),
+  (11, 10, 14, 'member', 16, 'pending',   '2026-11-18 14:10:00', NULL),
+  (12, 1,  15, 'member', 1,  'pending',   '2026-11-20 10:00:00', NULL);
 
 INSERT INTO team (team_id, company_id, name, created_at) VALUES
   (1,  1,  'Platform Engineering', '2026-01-14 09:00:00'),
@@ -402,7 +415,6 @@ INSERT INTO decision_link (decision_id, related_decision_id, link_type, created_
   (8, 7, 'relates_to', '2026-09-09 11:45:00');
 
 INSERT INTO tag (tag_id, company_id, name) VALUES
-  -- MindMerge
   (1, 1, 'infrastructure'),
   (2, 1, 'database'),
   (3, 1, 'performance'),
@@ -412,31 +424,22 @@ INSERT INTO tag (tag_id, company_id, name) VALUES
   (7, 1, 'reversible'),
   (8, 1, 'one-way-door'),
   (9, 1, 'compatibility'),
-  -- NVIDIA
   (10, 2, 'performance'),
   (11, 2, 'cost'),
   (12, 2, 'tooling'),
   (13, 2, 'reversible'),
-  -- Intel
   (14, 3, 'performance'),
   (15, 3, 'compatibility'),
-  -- Apple
   (16, 4, 'hardware'),
-  -- AMD
   (17, 5, 'performance'),
   (18, 5, 'hardware'),
-  -- Qualcomm
   (19, 6, 'performance'),
-  -- Cisco Systems
   (20, 7, 'infrastructure'),
   (21, 7, 'security'),
-  -- Oracle
   (22, 8, 'database'),
   (23, 8, 'performance'),
-  -- Adobe
   (24, 9, 'performance'),
   (25, 9, 'hardware'),
-  -- Salesforce
   (26, 10, 'database'),
   (27, 10, 'data-model');
 
